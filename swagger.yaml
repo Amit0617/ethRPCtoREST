@@ -1,0 +1,213 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/AMITMISHRA0617/EthereumAPIs/1.0.0
+info:
+  description: This is a simple API
+  version: "1.0.0"
+  title: ETHEREUM REST API
+  contact:
+    email: you@your-company.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: History Methods
+    description: Fetches historical records of every block back to genesis. This is like one large append-only file, and includes all block headers, block bodies, uncle blocks, and transaction receipts.
+  - name: State Methods
+    description: Methods that report the current state of all the data stored. The "state" is like one big shared piece of RAM, and includes account balances, contract data, and gas estimations.
+paths:
+  /eth/block/{hashOrNumber}:
+    get:
+      tags:
+        - History Methods
+      summary: Returns information about a block by block hash or block number.
+      operationId: eth_getBlockByHash
+      description: |
+        By passing in the appropriate options, you can get the hash or number of most recent block.
+      parameters:
+        - name: hashOrNumber
+          in: path
+          description: Hash of a block (32 Bytes) or block number (integer), or the string "earliest", "latest" or "pending", see [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          required: true
+          schema:
+            type: string
+        - name: includeTxns
+          in: query
+          description: If true, it returns the full transaction objects. If false, only the hashes of the transactions.
+          required: true
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: A block object or null when no block was found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBlockBy'
+
+  /eth_call:
+    post:
+      tags:
+        - State Methods
+      summary: Executes a new message call immediately without creating a transaction on the blockchain.
+      requestBody:
+      # inconsitent- it should be only on `to`
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCall'
+      responses:
+        '200':
+          description: The return value of the executed contract.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallResponse'
+
+  /eth_getBalance/{address}:
+    get:
+      tags:
+        - State Methods
+      summary: Returns the balance of the account of the given address.
+      parameters:
+        - name: address
+          in: path
+          description: Address to check for balance (20 Bytes).
+          required: true
+          schema:
+            type: string
+        - name: block
+          in: query
+          description: Integer block number or the string "latest", "earliest," or "pending." See the default block parameter.
+          required: true
+          schema:
+            type: string
+            
+      responses:
+        '200':
+          description: Integer of the current balance in wei.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: integer of the current balance in wei.
+
+components:
+  schemas:
+    GetBlockBy:
+      type: object
+      properties:
+          number:
+            type: string
+            description: The block number. Null when its a pending block.
+          hash:
+            type: string
+            format: byte
+            description: Hash of the block. Null when its a pending block.
+          parentHash:
+            type: string
+            format: byte
+            description: Hash of the parent block.
+          nonce:
+            type: string
+            format: byte
+            description: Hash of the generated proof-of-work. Null when its a pending block.
+          sha3Uncles:
+            type: string
+            format: byte
+            description: SHA3 of the uncles data in the block.
+          logsBloom:
+            type: string
+            format: byte
+            description: The bloom filter for the logs of the block. Null when its a pending block.
+          transactionsRoot:
+            type: string
+            format: byte
+            description: The root of the transaction trie of the block.
+          stateRoot:
+            type: string
+            format: byte
+            description: The root of the final state trie of the block.
+          receiptsRoot:
+            type: string
+            format: byte
+            description: The root of the receipts trie of the block.
+          miner:
+            type: string
+            format: byte
+            description: The address of the beneficiary to whom the mining rewards were given.
+          difficulty:
+            type: string
+            description: Integer of the difficulty for this block.
+          totalDifficulty:
+            type: string
+            description: Integer of the total difficulty of the chain until this block.
+          extraData:
+            type: string
+            description: The "extra data" field of this block.
+          size:
+            type: string
+            description: Integer the size of this block in bytes.
+          gasLimit:
+            type: string
+            description: The maximum gas allowed in this block.
+          gasUsed:
+            type: string
+            description: The total used gas by all transactions in this block.
+          timestamp:
+            type: string
+            description: The Unix timestamp for when the block was collated.
+          transactions:
+            type: array
+            description: Array of transaction objects or 32 Bytes transaction hashes depending on the last given parameter.
+            items:
+              type: object
+            example:
+              - hash: "0x6fc0511224081c34198f72a54c60961b7161e7d64b81c9e6a500c501ea9836c5"
+              - hash: "0x60363c2a19ea781b375e5d77d190b07ab037fc2a95fe2d80363c2a19ea781b37"
+          uncles:
+            type: array
+            description: Array of uncle hashes.
+            items:
+              type: string
+            example:
+              - "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+              - "0x0987654321fedcba0987654321fedcba0987654321fedcba0987654321fedcba"
+                      
+    TransactionCall:
+      type: object
+      properties:
+        from:
+          type: string
+          description: The address the transaction is sent from (20 Bytes).
+        to:
+          type: string
+          description: The address the transaction is directed to (20 Bytes).
+        gas:
+          type: string
+          description: Integer of the gas provided for the transaction execution. (optional)
+        gasPrice:
+          type: string
+          description: Integer of the gasPrice used for each paid gas. (optional)
+        value:
+          type: string
+          description: Integer of the value sent with this transaction. (optional)
+        data:
+          type: string
+          description: Hash of the method signature and encoded parameters. For details, see Ethereum Contract ABI in the Solidity documentation.
+        block:
+          type: string
+          description: Integer block number or the string "latest", "earliest," or "pending." See the default block parameter.
+
+    CallResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          description: The return value of the executed contract.
