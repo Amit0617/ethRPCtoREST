@@ -32,7 +32,10 @@ paths:
           description: Hash of a block (32 Bytes) or block number (integer), or the string "earliest", "latest" or "pending", see [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
           required: true
           schema:
-            type: string
+            oneOf:
+              - type: string
+              - $ref: '#/components/schemas/hash32'
+              - $ref: '#/components/schemas/uint'
         - name: includeTxns
           in: query
           description: If true, it returns the full transaction objects. If false, only the hashes of the transactions.
@@ -83,7 +86,7 @@ paths:
         description: Hash of a transaction (32 Bytes).
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/hash32'
     get:
       tags:
         - History Methods
@@ -107,13 +110,16 @@ paths:
           description: Hash of a block (32 Bytes) or block number (integer) or "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
           required: true
           schema:
-            type: string
+            oneOf:
+              - type: string
+              - $ref: '#/components/schemas/hash32'
+              - $ref: '#/components/schemas/uint'
         - name: index
           in: path
           description: Integer of the transaction index position.
           required: true
           schema:
-            type: integer
+            $ref: '#/components/schemas/uint'
       responses:
           '200':
             description: Transaction information.
@@ -129,64 +135,55 @@ components:
       type: object
       properties:
           number:
-            type: string
+            $ref: '#/components/schemas/uint'
             description: The block number. Null when its a pending block.
           hash:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/hash32'
             description: Hash of the block. Null when its a pending block.
           parentHash:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/hash32'
             description: Hash of the parent block.
           nonce:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/uint'
             description: Hash of the generated proof-of-work. Null when its a pending block.
           sha3Uncles:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/hash32'
             description: SHA3 of the uncles data in the block.
           logsBloom:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/bytes256'
             description: The bloom filter for the logs of the block. Null when its a pending block.
           transactionsRoot:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/hash32'
             description: The root of the transaction trie of the block.
           stateRoot:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/hash32'
             description: The root of the final state trie of the block.
           receiptsRoot:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/hash32'
             description: The root of the receipts trie of the block.
           miner:
-            type: string
-            format: byte
+            $ref: '#/components/schemas/address'
             description: The address of the beneficiary to whom the mining rewards were given.
           difficulty:
-            type: string
+            $ref: '#/components/schemas/bytes'
             description: Integer of the difficulty for this block.
           totalDifficulty:
-            type: string
+            $ref: '#/components/schemas/uint'
             description: Integer of the total difficulty of the chain until this block.
           extraData:
-            type: string
+            $ref: '#/components/schemas/bytes'
             description: The "extra data" field of this block.
           size:
-            type: string
+            $ref: '#/components/schemas/uint'
             description: Integer the size of this block in bytes.
           gasLimit:
-            type: string
+            $ref: '#/components/schemas/uint'
             description: The maximum gas allowed in this block.
           gasUsed:
-            type: string
+            $ref: '#/components/schemas/uint'
             description: The total used gas by all transactions in this block.
           timestamp:
-            type: string
+            $ref: '#/components/schemas/uint'
             description: The Unix timestamp for when the block was collated.
           transactions:
             type: array
@@ -199,8 +196,7 @@ components:
             type: array
             description: Array of uncle hashes.
             items:
-              type: string
-              format: byte
+              $ref: '#/components/schemas/hash32'
 
     uint:
       title: hex encoded unsigned integer
@@ -214,6 +210,10 @@ components:
       title: hex encoded bytes
       type: string
       pattern: ^0x[0-9a-f]*$
+    bytes256:
+      title: 256 hex encoded bytes
+      type: string
+      pattern: ^0x[0-9a-f]{512}$
     address:
       title: hex encoded address
       type: string
@@ -316,7 +316,7 @@ components:
           title: to address
           oneOf:
             - title: Contract Creation (null)
-              type: 'null'
+              type: null
             - title: Address
               $ref: '#/components/schemas/address'
         gas:
@@ -362,7 +362,7 @@ components:
           title: to address
           oneOf:
             - title: Contract Creation (null)
-              type: 'null'
+              type: null
             - title: Address
               $ref: '#/components/schemas/address'
         gas:
@@ -467,48 +467,47 @@ components:
       type: object
       properties:
         blockHash:
-          type: string
+          $ref: '#/components/schemas/hash32'
           description: Hash of the block where this transaction was in. Null when it's pending.
           example: "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
         blockNumber:
-          type: string
+          $ref: '#/components/schemas/uint'
           description: Block number where this transaction was in. Null when it's pending.
           example: "0x5daf3b"  # 6139707
         from:
-          type: string
+          $ref: '#/components/schemas/address'
           description: Address of the sender (20 Bytes).
           example: "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
         gas:
-          type: string
+          $ref: '#/components/schemas/uint'
           description: Gas provided by the sender.
           example: "0xc350"  # 50000
         gasPrice:
-          type: string
+          $ref: '#/components/schemas/uint'
           description: Gas price provided by the sender in Wei.
           example: "0x4a817c800"  # 20000000000
         hash:
-          type: string
-          format: byte
+          $ref: '#/components/schemas/hash32'
           description: Hash of the transaction (32 Bytes).
           example: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
         input:
-          type: string
+          $ref: '#/components/schemas/bytes'
           description: The data sent along with the transaction.
           example: "0x68656c6c6f21"
         nonce:
-          type: string
+          $ref: '#/components/schemas/uint'
           description: The number of transactions made by the sender prior to this one.
           example: "0x15"  # 21
         to:
-          type: string
+          $ref: '#/components/schemas/address'
           description: Address of the receiver. Null when it's a contract creation transaction.
           example: "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
         transactionIndex:
-          type: string
+          $ref: '#/components/schemas/uint'
           description: Integer of the transaction's index position in the block. Null when it's pending.
           example: "0x41"  # 65
         value:
-          type: string
+          $ref: '#/components/schemas/uint'
           description: Value transferred in Wei.
           example: "0xf3dbb76162000"  # 4290000000000000
         v:
