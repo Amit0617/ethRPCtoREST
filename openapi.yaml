@@ -128,6 +128,35 @@ paths:
                 schema:
                   $ref: '#/components/schemas/TransactionResponse'
 
+  /eth/uncle/block/{identifier}/{index}:
+    get:
+      summary: Returns information about a uncle of a block by hash and uncle index position or by block number and uncle index position.
+      tags:
+        - History Methods
+      parameters:
+        - name: identifier
+          in: path
+          description: Hash of a block (32 Bytes) or block number (integer) or "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - $ref: '#/components/schemas/hash32'
+              - $ref: '#/components/schemas/uint'
+        - name: index
+          in: path
+          description: The uncle's index position.
+          required: true
+          schema:
+            $ref: '#/components/schemas/uint'
+      responses:
+        '200':
+          description: A block object, or null when no block was found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBlockBy'
+
 
 components:
   schemas:
@@ -260,7 +289,7 @@ components:
           title: to address
           oneOf:
             - title: Contract Creation (null)
-              type: null
+              type: "null"
             - title: Address
               $ref: '#/components/schemas/address'
         gas:
@@ -316,7 +345,7 @@ components:
           title: to address
           oneOf:
             - title: Contract Creation (null)
-              type: null
+              type: "null"
             - title: Address
               $ref: '#/components/schemas/address'
         gas:
@@ -362,7 +391,7 @@ components:
           title: to address
           oneOf:
             - title: Contract Creation (null)
-              type: null
+              type: "null"
             - title: Address
               $ref: '#/components/schemas/address'
         gas:
