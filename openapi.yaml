@@ -18,6 +18,9 @@ tags:
   - name: State Methods
     description: Methods that report the current state of all the data stored. The "state" is like one big shared piece of RAM, and includes account balances, contract data, and gas estimations.
 paths:
+
+# eth_getBlockBy{Hash|Number}
+
   /eth/block/{identifier}:
     get:
       tags:
@@ -79,6 +82,8 @@ paths:
         '404':
           description: Block not found
 
+# eth_getTransactionByHash
+
   /eth/transaction/{hash}:
     parameters:
       - name: hash
@@ -98,6 +103,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransactionResponse'
+
+# eth_getTransactionByBlock{Hash|Number}andIndex
 
   /eth/transaction/block/{identifier}/{index}:
     get:
@@ -128,6 +135,30 @@ paths:
                 schema:
                   $ref: '#/components/schemas/TransactionResponse'
 
+# eth_getTransactionReceipt
+
+  /eth/transaction/receipt/{hash}:
+    parameters:
+      - name: hash
+        in: path
+        description: Hash of a transaction (32 Bytes).
+        required: true
+        schema:
+          $ref: '#/components/schemas/hash32'
+    get:
+      tags:
+        - History Methods
+      summary: Returns the receipt of a transaction by transaction hash.
+      responses:
+        '200':
+          description: A transaction receipt object, or null when no receipt was found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionReceipt'
+
+# eth_getUncleByBlock{Hash|Number}andIndex
+
   /eth/uncle/block/{identifier}/{index}:
     get:
       summary: Returns information about a uncle of a block by hash and uncle index position or by block number and uncle index position.
@@ -157,6 +188,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetBlockBy'
 
+# eth_getUncleCountByBlock{Hash|Number}
+
+  /eth/unclecount/block/{identifier}:
+    get:
+      summary: Returns the number of uncles in a block from a block matching the given block hash.
+      tags:
+        - History Methods
+      parameters:
+        - name: identifier
+          in: path
+          description: Hash of a block (32 Bytes) or block number (integer) or "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - $ref: '#/components/schemas/hash32'
+              - $ref: '#/components/schemas/uint'
+      responses:
+        '200':
+          description: Integer of the number of uncles in this block.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uint'
 
 components:
   schemas:
@@ -262,7 +317,8 @@ components:
       title: Access list
       type: array
       items:
-        $ref: '#/components/schemas/AccessListEntry'    
+        $ref: '#/components/schemas/AccessListEntry'
+
     Transaction1559Unsigned:
       type: object
       title: EIP-1559 transaction.
@@ -551,3 +607,78 @@ components:
           $ref: '#/components/schemas/uint'
           description: ECDSA signature s.
           example: "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+
+    TransactionReceipt:
+      type: object
+      properties:
+        transactionHash:
+          $ref: '#/components/schemas/hash32'
+          description: Hash of the transaction (32 Bytes).
+          example: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
+        transactionIndex:
+          $ref: '#/components/schemas/uint'
+          description: Integer of the transaction's index position in the block.
+          example: "0x41"  # 65
+        blockHash:
+          $ref: '#/components/schemas/hash32'
+          description: Hash of the block where this transaction was in.
+          example: "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
+        blockNumber:
+          $ref: '#/components/schemas/uint'
+          description: Block number where this transaction was in.
+          example: "0x5daf3b"  # 6139707
+        from:
+          $ref: '#/components/schemas/address'
+          description: Address of the sender.
+          example: "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
+        to:
+          type:
+            oneOf:
+              - $ref: '#/components/schemas/address'
+              - type: "null"
+          description: Address of the receiver. Null when it's a contract creation transaction.
+          example: "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
+        cumulativeGasUsed:
+          $ref: '#/components/schemas/uint'
+          description: The total amount of gas used when this transaction was executed in the block.
+          example: "0x33bc"  # 13244
+        effectiveGasPrice:
+          $ref: '#/components/schemas/uint'
+          description: The sum of the base fee and tip paid per unit of gas.
+          example: "0x4a817c800"  # 20000000000
+        gasUsed:
+          $ref: '#/components/schemas/uint'
+          description: The amount of gas used by this specific transaction alone.
+          example: "0x4dc"  # 1244
+        contractAddress:
+          type:
+            oneOf:
+              - $ref: '#/components/schemas/address'
+              - type: "null"
+          description: The contract address created, if the transaction was a contract creation, otherwise null.
+          example: "0xb60e8dd61c5d32be8058bb8eb970870f07233155"
+        logs:
+          type: array
+          items:
+            type: object
+          description: Array of log objects, which this transaction generated.
+          example: [{}]
+        logsBloom:
+          $ref: '#/components/schemas/bytes'
+          description: Bloom filter for light clients to quickly retrieve related logs.
+          example: "0x00...0"
+        type:
+          $ref: '#/components/schemas/uint'
+          description: Integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
+          example: "0x0"  # 0
+        root:
+          $ref: '#/components/schemas/hash32'
+          description: 32 bytes of post-transaction stateroot (pre Byzantium)
+          example: "0x00...0"
+        status:
+          $ref: '#/components/schemas/uint'
+          description: Either 1 (success) or 0 (failure)
+          example: "0x1"  # 1
+      oneOf:
+        - required: [root]
+        - required: [status]
