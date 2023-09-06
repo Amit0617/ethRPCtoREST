@@ -343,9 +343,9 @@ components:
           $ref: '#/components/schemas/uint'
         to:
           title: to address
+          nullable: true
           oneOf:
             - title: Contract Creation (null)
-              type: "null"
             - title: Address
               $ref: '#/components/schemas/address'
         gas:
@@ -667,10 +667,10 @@ components:
           $ref: '#/components/schemas/bytes'
           description: Bloom filter for light clients to quickly retrieve related logs.
           example: "0x00...0"
-        type:
-          $ref: '#/components/schemas/uint'
-          description: Integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
-          example: "0x0"  # 0
+        # type:
+        #   $ref: '#/components/schemas/uint'
+        #   description: Integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
+        #   example: "0x0"  # 0
         root:
           $ref: '#/components/schemas/hash32'
           description: 32 bytes of post-transaction stateroot (pre Byzantium)
