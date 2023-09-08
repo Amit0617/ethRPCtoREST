@@ -11,15 +11,14 @@ info:
     email: you@your-company.com
   license:
     name: Apache 2.0
-    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 tags:
   - name: History Methods
     description: Fetches historical records of every block back to genesis. This is like one large append-only file, and includes all block headers, block bodies, uncle blocks, and transaction receipts.
   - name: State Methods
     description: Methods that report the current state of all the data stored. The "state" is like one big shared piece of RAM, and includes account balances, contract data, and gas estimations.
 paths:
-
-# eth_getBlockBy{Hash|Number}
+  # eth_getBlockBy{Hash|Number}
 
   /eth/block/{identifier}:
     get:
@@ -37,8 +36,8 @@ paths:
           schema:
             oneOf:
               - type: string
-              - $ref: '#/components/schemas/hash32'
-              - $ref: '#/components/schemas/uint'
+              - $ref: "#/components/schemas/hash32"
+              - $ref: "#/components/schemas/uint"
         - name: includeTxns
           in: query
           description: If true, it returns the full transaction objects. If false, only the hashes of the transactions.
@@ -46,12 +45,12 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: A block object.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetBlockBy'
+                $ref: "#/components/schemas/GetBlockBy"
               examples:
                 fullTransactionExample:
                   value:
@@ -72,17 +71,15 @@ paths:
                     "stateRoot": "0xddc8b0234c2e0cad087c8b389aa7ef01f7d79b2570bccb77ce48648aa61c904d"
                     "timestamp": "0x55ba467c"
                     "totalDifficulty": "0x78ed983323d"
-                    "transactions": [
-                    ]
+                    "transactions": []
                     "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
-                    "uncles": [
-                    ]
-        '400':
+                    "uncles": []
+        "400":
           description: Invalid block number supplied
-        '404':
+        "404":
           description: Block not found
 
-# eth_getTransactionByHash
+  # eth_getTransactionByHash
 
   /eth/transaction/{hash}:
     parameters:
@@ -91,20 +88,26 @@ paths:
         description: Hash of a transaction (32 Bytes).
         required: true
         schema:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
     get:
       tags:
         - History Methods
       summary: Returns the information about a transaction requested by transaction hash.
       responses:
-        '200':
-          description: A transaction object or null when no transaction was found.
+        "200":
+          description: A transaction object.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransactionResponse'
+                $ref: "#/components/schemas/TransactionResponse"
+        "202":
+          description: Transaction is not yet available (might be queued for execution, not mined yet)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPending"
 
-# eth_getTransactionByBlock{Hash|Number}andIndex
+  # eth_getTransactionByBlock{Hash|Number}andIndex
 
   /eth/transaction/block/{identifier}/{index}:
     get:
@@ -119,23 +122,23 @@ paths:
           schema:
             oneOf:
               - type: string
-              - $ref: '#/components/schemas/hash32'
-              - $ref: '#/components/schemas/uint'
+              - $ref: "#/components/schemas/hash32"
+              - $ref: "#/components/schemas/uint"
         - name: index
           in: path
           description: Integer of the transaction index position.
           required: true
           schema:
-            $ref: '#/components/schemas/uint'
+            $ref: "#/components/schemas/uint"
       responses:
-          '200':
-            description: Transaction information.
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/TransactionResponse'
+        "200":
+          description: Transaction information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionResponse"
 
-# eth_getTransactionReceipt
+  # eth_getTransactionReceipt
 
   /eth/transaction/receipt/{hash}:
     parameters:
@@ -144,20 +147,20 @@ paths:
         description: Hash of a transaction (32 Bytes).
         required: true
         schema:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
     get:
       tags:
         - History Methods
       summary: Returns the receipt of a transaction by transaction hash.
       responses:
-        '200':
+        "200":
           description: A transaction receipt object, or null when no receipt was found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransactionReceipt'
+                $ref: "#/components/schemas/TransactionReceipt"
 
-# eth_getUncleByBlock{Hash|Number}andIndex
+  # eth_getUncleByBlock{Hash|Number}andIndex
 
   /eth/uncle/block/{identifier}/{index}:
     get:
@@ -172,23 +175,23 @@ paths:
           schema:
             oneOf:
               - type: string
-              - $ref: '#/components/schemas/hash32'
-              - $ref: '#/components/schemas/uint'
+              - $ref: "#/components/schemas/hash32"
+              - $ref: "#/components/schemas/uint"
         - name: index
           in: path
           description: The uncle's index position.
           required: true
           schema:
-            $ref: '#/components/schemas/uint'
+            $ref: "#/components/schemas/uint"
       responses:
-        '200':
+        "200":
           description: A block object, or null when no block was found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetBlockBy'
+                $ref: "#/components/schemas/GetBlockBy"
 
-# eth_getUncleCountByBlock{Hash|Number}
+  # eth_getUncleCountByBlock{Hash|Number}
 
   /eth/unclecount/block/{identifier}:
     get:
@@ -203,84 +206,84 @@ paths:
           schema:
             oneOf:
               - type: string
-              - $ref: '#/components/schemas/hash32'
-              - $ref: '#/components/schemas/uint'
+              - $ref: "#/components/schemas/hash32"
+              - $ref: "#/components/schemas/uint"
       responses:
-        '200':
+        "200":
           description: Integer of the number of uncles in this block.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/uint'
+                $ref: "#/components/schemas/uint"
 
 components:
   schemas:
     GetBlockBy:
       type: object
       properties:
-          number:
-            $ref: '#/components/schemas/uint'
-            description: The block number. Null when its a pending block.
-          hash:
-            $ref: '#/components/schemas/hash32'
-            description: Hash of the block. Null when its a pending block.
-          parentHash:
-            $ref: '#/components/schemas/hash32'
-            description: Hash of the parent block.
-          nonce:
-            $ref: '#/components/schemas/uint'
-            description: Hash of the generated proof-of-work. Null when its a pending block.
-          sha3Uncles:
-            $ref: '#/components/schemas/hash32'
-            description: SHA3 of the uncles data in the block.
-          logsBloom:
-            $ref: '#/components/schemas/bytes256'
-            description: The bloom filter for the logs of the block. Null when its a pending block.
-          transactionsRoot:
-            $ref: '#/components/schemas/hash32'
-            description: The root of the transaction trie of the block.
-          stateRoot:
-            $ref: '#/components/schemas/hash32'
-            description: The root of the final state trie of the block.
-          receiptsRoot:
-            $ref: '#/components/schemas/hash32'
-            description: The root of the receipts trie of the block.
-          miner:
-            $ref: '#/components/schemas/address'
-            description: The address of the beneficiary to whom the mining rewards were given.
-          difficulty:
-            $ref: '#/components/schemas/bytes'
-            description: Integer of the difficulty for this block.
-          totalDifficulty:
-            $ref: '#/components/schemas/uint'
-            description: Integer of the total difficulty of the chain until this block.
-          extraData:
-            $ref: '#/components/schemas/bytes'
-            description: The "extra data" field of this block.
-          size:
-            $ref: '#/components/schemas/uint'
-            description: Integer the size of this block in bytes.
-          gasLimit:
-            $ref: '#/components/schemas/uint'
-            description: The maximum gas allowed in this block.
-          gasUsed:
-            $ref: '#/components/schemas/uint'
-            description: The total used gas by all transactions in this block.
-          timestamp:
-            $ref: '#/components/schemas/uint'
-            description: The Unix timestamp for when the block was collated.
-          transactions:
-            type: array
-            description: Array of transaction objects or 32 Bytes transaction hashes depending on the last given parameter.
-            items:
-              oneOf:
-                - $ref: '#/components/schemas/TransactionSigned'
-                - $ref: '#/components/schemas/hash32'
-          uncles:
-            type: array
-            description: Array of uncle hashes.
-            items:
-              $ref: '#/components/schemas/hash32'
+        number:
+          $ref: "#/components/schemas/uint"
+          description: The block number. Null when its a pending block.
+        hash:
+          $ref: "#/components/schemas/hash32"
+          description: Hash of the block. Null when its a pending block.
+        parentHash:
+          $ref: "#/components/schemas/hash32"
+          description: Hash of the parent block.
+        nonce:
+          $ref: "#/components/schemas/uint"
+          description: Hash of the generated proof-of-work. Null when its a pending block.
+        sha3Uncles:
+          $ref: "#/components/schemas/hash32"
+          description: SHA3 of the uncles data in the block.
+        logsBloom:
+          $ref: "#/components/schemas/bytes256"
+          description: The bloom filter for the logs of the block. Null when its a pending block.
+        transactionsRoot:
+          $ref: "#/components/schemas/hash32"
+          description: The root of the transaction trie of the block.
+        stateRoot:
+          $ref: "#/components/schemas/hash32"
+          description: The root of the final state trie of the block.
+        receiptsRoot:
+          $ref: "#/components/schemas/hash32"
+          description: The root of the receipts trie of the block.
+        miner:
+          $ref: "#/components/schemas/address"
+          description: The address of the beneficiary to whom the mining rewards were given.
+        difficulty:
+          $ref: "#/components/schemas/bytes"
+          description: Integer of the difficulty for this block.
+        totalDifficulty:
+          $ref: "#/components/schemas/uint"
+          description: Integer of the total difficulty of the chain until this block.
+        extraData:
+          $ref: "#/components/schemas/bytes"
+          description: The "extra data" field of this block.
+        size:
+          $ref: "#/components/schemas/uint"
+          description: Integer the size of this block in bytes.
+        gasLimit:
+          $ref: "#/components/schemas/uint"
+          description: The maximum gas allowed in this block.
+        gasUsed:
+          $ref: "#/components/schemas/uint"
+          description: The total used gas by all transactions in this block.
+        timestamp:
+          $ref: "#/components/schemas/uint"
+          description: The Unix timestamp for when the block was collated.
+        transactions:
+          type: array
+          description: Array of transaction objects or 32 Bytes transaction hashes depending on the last given parameter.
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/TransactionSigned"
+              - $ref: "#/components/schemas/hash32"
+        uncles:
+          type: array
+          description: Array of uncle hashes.
+          items:
+            $ref: "#/components/schemas/hash32"
 
     uint:
       title: hex encoded unsigned integer
@@ -308,16 +311,16 @@ components:
       type: object
       properties:
         address:
-          $ref: '#/components/schemas/address'
+          $ref: "#/components/schemas/address"
         storageKeys:
           type: array
           items:
-            $ref: '#/components/schemas/hash32'
+            $ref: "#/components/schemas/hash32"
     AccessList:
       title: Access list
       type: array
       items:
-        $ref: '#/components/schemas/AccessListEntry'
+        $ref: "#/components/schemas/AccessListEntry"
 
     Transaction1559Unsigned:
       type: object
@@ -340,43 +343,43 @@ components:
           pattern: ^0x2$
         nonce:
           title: nonce
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         to:
           title: to address
           nullable: true
           oneOf:
             - title: Contract Creation (null)
             - title: Address
-              $ref: '#/components/schemas/address'
+              $ref: "#/components/schemas/address"
         gas:
           title: gas limit
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         value:
           title: value
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         input:
           title: input data
-          $ref: '#/components/schemas/bytes'
+          $ref: "#/components/schemas/bytes"
         maxPriorityFeePerGas:
           title: max priority fee per gas
           description: Maximum fee per gas the sender is willing to pay to miners in wei
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         maxFeePerGas:
           title: max fee per gas
           description: The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         gasPrice:
           title: gas price
           description: The effective gas price paid by the sender in wei. For transactions not yet included in a block, this value should be set equal to the max fee per gas. This field is DEPRECATED, please transition to using effectiveGasPrice in the receipt object going forward.
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         accessList:
           title: accessList
           description: EIP-2930 access list
-          $ref: '#/components/schemas/AccessList'
+          $ref: "#/components/schemas/AccessList"
         chainId:
           title: chainId
           description: Chain ID that this transaction is valid on.
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
     Transaction2930Unsigned:
       type: object
       title: EIP-2930 transaction.
@@ -396,35 +399,35 @@ components:
           pattern: ^0x1$
         nonce:
           title: nonce
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         to:
           title: to address
           oneOf:
             - title: Contract Creation (null)
               type: "null"
             - title: Address
-              $ref: '#/components/schemas/address'
+              $ref: "#/components/schemas/address"
         gas:
           title: gas limit
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         value:
           title: value
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         input:
           title: input data
-          $ref: '#/components/schemas/bytes'
+          $ref: "#/components/schemas/bytes"
         gasPrice:
           title: gas price
           description: The gas price willing to be paid by the sender in wei
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         accessList:
           title: accessList
           description: EIP-2930 access list
-          $ref: '#/components/schemas/AccessList'
+          $ref: "#/components/schemas/AccessList"
         chainId:
           title: chainId
           description: Chain ID that this transaction is valid on.
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
     TransactionLegacyUnsigned:
       type: object
       title: Legacy transaction.
@@ -442,41 +445,41 @@ components:
           pattern: ^0x0$
         nonce:
           title: nonce
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         to:
           title: to address
           oneOf:
             - title: Contract Creation (null)
               type: "null"
             - title: Address
-              $ref: '#/components/schemas/address'
+              $ref: "#/components/schemas/address"
         gas:
           title: gas limit
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         value:
           title: value
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         input:
           title: input data
-          $ref: '#/components/schemas/bytes'
+          $ref: "#/components/schemas/bytes"
         gasPrice:
           title: gas price
           description: The gas price willing to be paid by the sender in wei
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
         chainId:
           title: chainId
           description: Chain ID that this transaction is valid on.
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
     TransactionUnsigned:
       oneOf:
-        - $ref: '#/components/schemas/Transaction1559Unsigned'
-        - $ref: '#/components/schemas/Transaction2930Unsigned'
-        - $ref: '#/components/schemas/TransactionLegacyUnsigned'
+        - $ref: "#/components/schemas/Transaction1559Unsigned"
+        - $ref: "#/components/schemas/Transaction2930Unsigned"
+        - $ref: "#/components/schemas/TransactionLegacyUnsigned"
     Transaction1559Signed:
       title: Signed 1559 Transaction
       type: object
       allOf:
-        - $ref: '#/components/schemas/Transaction1559Unsigned'
+        - $ref: "#/components/schemas/Transaction1559Unsigned"
         - title: EIP-1559 transaction signature properties.
           required:
             - yParity
@@ -486,22 +489,22 @@ components:
             yParity:
               title: yParity
               description: The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             v:
               title: v
               description: For backwards compatibility, `v` is optionally provided as an alternative to `yParity`. This field is DEPRECATED and all use of it should migrate to `yParity`.
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             r:
               title: r
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             s:
               title: s
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
     Transaction2930Signed:
       title: Signed 2930 Transaction
       type: object
       allOf:
-        - $ref: '#/components/schemas/Transaction2930Unsigned'
+        - $ref: "#/components/schemas/Transaction2930Unsigned"
         - title: EIP-2930 transaction signature properties.
           required:
             - yParity
@@ -511,22 +514,22 @@ components:
             yParity:
               title: yParity
               description: The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             v:
               title: v
               description: For backwards compatibility, `v` is optionally provided as an alternative to `yParity`. This field is DEPRECATED and all use of it should migrate to `yParity`.
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             r:
               title: r
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             s:
               title: s
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
     TransactionLegacySigned:
       title: Signed Legacy Transaction
       type: object
       allOf:
-        - $ref: '#/components/schemas/TransactionLegacyUnsigned'
+        - $ref: "#/components/schemas/TransactionLegacyUnsigned"
         - title: Legacy transaction signature properties.
           required:
             - v
@@ -535,76 +538,76 @@ components:
           properties:
             v:
               title: v
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             r:
               title: r
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
             s:
               title: s
-              $ref: '#/components/schemas/uint'
+              $ref: "#/components/schemas/uint"
     TransactionSigned:
       oneOf:
-        - $ref: '#/components/schemas/Transaction1559Signed'
-        - $ref: '#/components/schemas/Transaction2930Signed'
-        - $ref: '#/components/schemas/TransactionLegacySigned'
-    
+        - $ref: "#/components/schemas/Transaction1559Signed"
+        - $ref: "#/components/schemas/Transaction2930Signed"
+        - $ref: "#/components/schemas/TransactionLegacySigned"
+
     TransactionResponse:
       type: object
       properties:
         blockHash:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
           description: Hash of the block where this transaction was in. Null when it's pending.
           example: "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
         blockNumber:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Block number where this transaction was in. Null when it's pending.
-          example: "0x5daf3b"  # 6139707
+          example: "0x5daf3b" # 6139707
         from:
-          $ref: '#/components/schemas/address'
+          $ref: "#/components/schemas/address"
           description: Address of the sender (20 Bytes).
           example: "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
         gas:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Gas provided by the sender.
-          example: "0xc350"  # 50000
+          example: "0xc350" # 50000
         gasPrice:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Gas price provided by the sender in Wei.
-          example: "0x4a817c800"  # 20000000000
+          example: "0x4a817c800" # 20000000000
         hash:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
           description: Hash of the transaction (32 Bytes).
           example: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
         input:
-          $ref: '#/components/schemas/bytes'
+          $ref: "#/components/schemas/bytes"
           description: The data sent along with the transaction.
           example: "0x68656c6c6f21"
         nonce:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: The number of transactions made by the sender prior to this one.
-          example: "0x15"  # 21
+          example: "0x15" # 21
         to:
-          $ref: '#/components/schemas/address'
+          $ref: "#/components/schemas/address"
           description: Address of the receiver. Null when it's a contract creation transaction.
           example: "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
         transactionIndex:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Integer of the transaction's index position in the block. Null when it's pending.
-          example: "0x41"  # 65
+          example: "0x41" # 65
         value:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Value transferred in Wei.
-          example: "0xf3dbb76162000"  # 4290000000000000
+          example: "0xf3dbb76162000" # 4290000000000000
         v:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: ECDSA recovery id.
-          example: "0x25"  # 37
+          example: "0x25" # 37
         r:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: ECDSA signature r.
           example: "0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea"
         s:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: ECDSA signature s.
           example: "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
 
@@ -612,48 +615,48 @@ components:
       type: object
       properties:
         transactionHash:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
           description: Hash of the transaction (32 Bytes).
           example: "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
         transactionIndex:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Integer of the transaction's index position in the block.
-          example: "0x41"  # 65
+          example: "0x41" # 65
         blockHash:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
           description: Hash of the block where this transaction was in.
           example: "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
         blockNumber:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Block number where this transaction was in.
-          example: "0x5daf3b"  # 6139707
+          example: "0x5daf3b" # 6139707
         from:
-          $ref: '#/components/schemas/address'
+          $ref: "#/components/schemas/address"
           description: Address of the sender.
           example: "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
         to:
           type:
             oneOf:
-              - $ref: '#/components/schemas/address'
+              - $ref: "#/components/schemas/address"
               - type: "null"
           description: Address of the receiver. Null when it's a contract creation transaction.
           example: "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
         cumulativeGasUsed:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: The total amount of gas used when this transaction was executed in the block.
-          example: "0x33bc"  # 13244
+          example: "0x33bc" # 13244
         effectiveGasPrice:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: The sum of the base fee and tip paid per unit of gas.
-          example: "0x4a817c800"  # 20000000000
+          example: "0x4a817c800" # 20000000000
         gasUsed:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: The amount of gas used by this specific transaction alone.
-          example: "0x4dc"  # 1244
+          example: "0x4dc" # 1244
         contractAddress:
           type:
             oneOf:
-              - $ref: '#/components/schemas/address'
+              - $ref: "#/components/schemas/address"
               - type: "null"
           description: The contract address created, if the transaction was a contract creation, otherwise null.
           example: "0xb60e8dd61c5d32be8058bb8eb970870f07233155"
@@ -664,7 +667,7 @@ components:
           description: Array of log objects, which this transaction generated.
           example: [{}]
         logsBloom:
-          $ref: '#/components/schemas/bytes'
+          $ref: "#/components/schemas/bytes"
           description: Bloom filter for light clients to quickly retrieve related logs.
           example: "0x00...0"
         # type:
@@ -672,13 +675,21 @@ components:
         #   description: Integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
         #   example: "0x0"  # 0
         root:
-          $ref: '#/components/schemas/hash32'
+          $ref: "#/components/schemas/hash32"
           description: 32 bytes of post-transaction stateroot (pre Byzantium)
           example: "0x00...0"
         status:
-          $ref: '#/components/schemas/uint'
+          $ref: "#/components/schemas/uint"
           description: Either 1 (success) or 0 (failure)
-          example: "0x1"  # 1
+          example: "0x1" # 1
       oneOf:
         - required: [root]
         - required: [status]
+
+    TransactionPending:
+      type: object
+      properties:
+        info:
+          type: string
+          description: Information about status of the transaction.
+          example: "Transaction isn't mined yet"
