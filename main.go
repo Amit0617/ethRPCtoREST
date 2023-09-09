@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -10,13 +11,17 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 var RPC_URL string
 var client *ethclient.Client
+var rpcClient *rpc.Client
 
 // A Block hash is 32 bytes long and hence 64 characters long plus 0x prefix
 var hashRegex = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
@@ -46,11 +51,14 @@ func main() {
 
 	app.Get("/eth/block/:identifier", getBlockByIdentifier)
 	app.Get("/eth/transaction/:hash", getTransactionByHash)
+	app.Get("/eth/transaction/block/:identifier/:index", getTransactionByIdentifierAndIndex)
 
 	log.Fatal(app.Listen(":3000"))
 }
 
-// Handler
+// Handlers
+
+// getBlockByIdentifier retrieves block information by block hash or block number and returns it as JSON.
 func getBlockByIdentifier(c *fiber.Ctx) error {
 	identifier := c.Params("identifier")
 
@@ -127,4 +135,92 @@ func getTransactionByHash(c *fiber.Ctx) error {
 			"error": "Invalid transaction hash",
 		})
 	}
+}
+
+func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
+	identifier := c.Params("identifier")
+	index := c.Params("index")
+	log.Print(identifier)
+	log.Print(index)
+	// Check if index is a valid uint number by converting hex to uint
+	indexNumber, success := new(big.Int).SetString(index[2:], 16)
+	if !success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid index",
+		})
+	}
+
+	// Check if identifier is a block hash or block number
+	if hashRegex.MatchString(identifier) {
+		log.Println("Block hash")
+		blockInfo := getTransactionByBlockHashAndIndex(c, identifier, uint(indexNumber.Uint64()))
+		return blockInfo
+	} else if blockNumberRegex.MatchString(identifier) {
+		log.Println("Block number")
+		blockInfo := getTransactionByBlockNumberAndIndex(c, identifier, index)
+		return blockInfo
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid identifier",
+		})
+	}
+}
+
+func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters string, index string) error {
+	//TODO: Add Support for default block parameters
+	number := numberOrDefaultParameters
+	number = number[2:] // Remove 0x prefix
+	log.Println(number)
+
+	blockNumber, success := new(big.Int).SetString(number, 16)
+	if !success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+	log.Println(blockNumber)
+
+	type txExtraInfo struct {
+		BlockNumber *string         `json:"blockNumber,omitempty"`
+		BlockHash   *common.Hash    `json:"blockHash,omitempty"`
+		From        *common.Address `json:"from,omitempty"`
+	}
+	type rpcTransaction struct {
+		tx *types.Transaction
+		txExtraInfo
+	}
+
+	var json *rpcTransaction
+	var ctx = context.Background()
+	err := (rpcClient).CallContext(ctx, &json, "eth_getTransactionByBlockNumberAndIndex", toBlockNumArg(blockNumber), index)
+	if err != nil {
+		log.Print("Error fetching transaction info:", err)
+	}
+	return c.JSON(json.tx)
+}
+
+func getTransactionByBlockHashAndIndex(c *fiber.Ctx, hash string, index uint) error {
+	blockHash := common.HexToHash(hash)
+	log.Println(blockHash)
+	block, err := client.TransactionInBlock(context.Background(), blockHash, index)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(block)
+}
+
+// redefining function from go-ethereum/ethclient/ethclient.go
+func toBlockNumArg(number *big.Int) string {
+	if number == nil {
+		return "latest"
+	}
+	if number.Sign() >= 0 {
+		return hexutil.EncodeBig(number)
+	}
+	// It's negative.
+	if number.IsInt64() {
+		return rpc.BlockNumber(number.Int64()).String()
+	}
+	// It's negative and large, which is invalid.
+	return fmt.Sprintf("<invalid %d>", number)
 }
