@@ -49,6 +49,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	rpcClient, err = rpc.Dial(RPC_URL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	app.Get("/eth/block/:identifier", getBlockByIdentifier)
 	app.Get("/eth/transaction/:hash", getTransactionByHash)
 	app.Get("/eth/transaction/block/:identifier/:index", getTransactionByIdentifierAndIndex)
@@ -168,6 +173,7 @@ func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
 
 func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters string, index string) error {
 	//TODO: Add Support for default block parameters
+	// if numberOrDefaultParameters == "latest" {}
 	number := numberOrDefaultParameters
 	number = number[2:] // Remove 0x prefix
 	log.Println(number)
@@ -192,11 +198,11 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 
 	var json *rpcTransaction
 	var ctx = context.Background()
-	err := (rpcClient).CallContext(ctx, &json, "eth_getTransactionByBlockNumberAndIndex", toBlockNumArg(blockNumber), index)
+	err := rpcClient.CallContext(ctx, &json, "eth_getTransactionByBlockNumberAndIndex", toBlockNumArg(blockNumber), index)
 	if err != nil {
 		log.Print("Error fetching transaction info:", err)
 	}
-	return c.JSON(json.tx)
+	return c.JSON(json)
 }
 
 func getTransactionByBlockHashAndIndex(c *fiber.Ctx, hash string, index uint) error {
