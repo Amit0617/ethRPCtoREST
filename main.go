@@ -57,6 +57,7 @@ func main() {
 	app.Get("/eth/block/:identifier", getBlockByIdentifier)
 	app.Get("/eth/transaction/:hash", getTransactionByHash)
 	app.Get("/eth/transaction/block/:identifier/:index", getTransactionByIdentifierAndIndex)
+	app.Get("/eth/transaction/receipt/:hash", "getTransactionReceiptByHash")
 
 	log.Fatal(app.Listen(":3000"))
 }
@@ -229,4 +230,23 @@ func toBlockNumArg(number *big.Int) string {
 	}
 	// It's negative and large, which is invalid.
 	return fmt.Sprintf("<invalid %d>", number)
+}
+
+func getTransactionReceiptByHash(c *fiber.Ctx) error {
+	hash := c.Params("hash")
+	// Check if hash is a valid transaction hash
+	transactionHashRegex := hashRegex
+	if transactionHashRegex.MatchString(hash) {
+		transactionHash := common.HexToHash(hash)
+		log.Println(transactionHash)
+		transactionReceipt, err := client.TransactionReceipt(context.Background(), transactionHash)
+		if err != nil {
+			log.Print("Error fetching transaction info:", err)
+		}
+		return c.JSON(transactionReceipt)
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid transaction hash",
+		})
+	}
 }
