@@ -6,7 +6,7 @@ This Project is part of Ethereum Protocol Fellowship and following proposal can 
 
 ### Setting up
 
-1. ```bash
+1. ```console
    git clone https://github.com/amit0617/ethRPCtoREST.git && cd ethRPCtoREST
    ```
 
@@ -20,7 +20,7 @@ This Project is part of Ethereum Protocol Fellowship and following proposal can 
    go mod tidy && go run ./main.go
    ```
 
-And you are done! Open localhost:8080 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
+And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
 
 # REST Wrapper
 
