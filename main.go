@@ -27,7 +27,7 @@ var rpcClient *rpc.Client
 var hashRegex = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 
 // A block number also allows default block identifiers such as "earliest", "latest" and "pending"
-// TODO: A block number can also be a decimal number without 0x prefix (my proposal)
+// TODO: A block number can also be a decimal number without 0x prefix (part of my proposal)
 // A block number can also be a hex number with 0x prefix
 // A block number will always consist of a non-zero character after 0x, except for "0x0".
 
@@ -142,8 +142,7 @@ func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters strin
 func getTransactionByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	// Check if hash is a valid transaction hash
-	transactionHashRegex := hashRegex
-	if transactionHashRegex.MatchString(hash) {
+	if hashRegex.MatchString(hash) {
 		transactionHash := common.HexToHash(hash)
 		log.Println(transactionHash)
 		transaction, isPending, err := client.TransactionByHash(context.Background(), transactionHash)
@@ -309,9 +308,51 @@ func getUncleByBlockIdentifierAndIndex(c *fiber.Ctx) error {
 }
 
 func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters string, index string) error {
-	return c.JSON(fiber.Map{"message": "Not implemented yet"})
+	if defaultBlockParamRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Default block parameters")
+		blockInfo := getUncleByDefaultBlockParametersAndIndex(c, numberOrDefaultParameters, index)
+		return blockInfo
+	} else {
+		number := numberOrDefaultParameters
+		number = number[2:] // Remove 0x prefix
+		log.Println(number)
+
+		blockNumber, success := new(big.Int).SetString(number, 16)
+		if !success {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid number",
+			})
+		}
+		log.Println(blockNumber)
+		blockInfo, err := client.HeaderByNumber(context.Background(), blockNumber)
+		if err != nil {
+			log.Print("Error fetching block info:", err)
+		}
+		return c.JSON(blockInfo)
+	}
+}
+
+func getUncleByDefaultBlockParametersAndIndex(c *fiber.Ctx, defaultBlockParameters string, index string) error {
+	var ctx = context.Background()
+	var blockInfo *types.Header
+
+	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getUncleByBlockNumberAndIndex", defaultBlockParameters, index)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(blockInfo)
 }
 
 func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error {
-	return c.JSON(fiber.Map{"message": "Not implemented yet"})
+	blockHash := common.HexToHash(hash)
+	log.Println(blockHash)
+
+	var ctx = context.Background()
+	var blockInfo *types.Header
+
+	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getUncleByBlockHashAndIndex", blockHash, index)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(blockInfo)
 }

@@ -6,7 +6,7 @@ This Project is part of Ethereum Protocol Fellowship and following proposal can 
 
 ### Setting up
 
-1. ```console
+1. ```bash
    git clone https://github.com/amit0617/ethRPCtoREST.git && cd ethRPCtoREST
    ```
 
