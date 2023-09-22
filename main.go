@@ -60,10 +60,12 @@ func main() {
 	app.Get("/eth/transaction/block/:identifier/:index", getTransactionByIdentifierAndIndex)
 	app.Get("/eth/transaction/receipt/:hash", getTransactionReceiptByHash)
 	app.Get("/eth/uncle/block/:identifier/:index", getUncleByBlockIdentifierAndIndex)
+	app.Get("/eth/unclecount/block/:identifier", getUncleCountByBlockIdentifier)
 
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
 	// - when user will hit the server with a route matching the routes of APIs but without any query params. like /eth/block or /eth/transaction these will consist of usage of APIs and expected query params for that route specifically.
+	// - One thing to keep in mind that it might be an inconvenient thing for the user to get docs on path with wrong query params. So, make sure to check if the request consists of header "Accept: application/json" or not. If it does then return JSON response else return HTML response.
 	log.Fatal(app.Listen(":3000"))
 }
 
@@ -72,17 +74,17 @@ func main() {
 // getBlockByIdentifier retrieves block information by block hash or block number and returns it as JSON.
 func getBlockByIdentifier(c *fiber.Ctx) error {
 	identifier := c.Params("identifier")
-
+	includeTx := c.QueryBool("includeTx")
 	blockHashRegex := hashRegex
 
 	// Check if identifier is a block hash or block number
 	if blockHashRegex.MatchString(identifier) {
 		log.Println("Block hash")
-		blockInfo := getBlockByHash(c, identifier)
+		blockInfo := getBlockByHash(c, identifier, includeTx)
 		return blockInfo
 	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
 		log.Println("Block number")
-		blockInfo := getBlockByNumber(c, identifier)
+		blockInfo := getBlockByNumber(c, identifier, includeTx)
 		return blockInfo
 	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -92,7 +94,7 @@ func getBlockByIdentifier(c *fiber.Ctx) error {
 }
 
 // getBlockByHash retrieves block information by hash and returns it as JSON.
-func getBlockByHash(c *fiber.Ctx, hash string) error {
+func getBlockByHash(c *fiber.Ctx, hash string, includeTx bool) error {
 	blockHash := common.HexToHash(hash)
 	log.Println(blockHash)
 	block, err := client.HeaderByHash(context.Background(), blockHash)
@@ -103,10 +105,10 @@ func getBlockByHash(c *fiber.Ctx, hash string) error {
 }
 
 // getBlockByNumber retrieves block information by block number or default block parameters and returns it as JSON.
-func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string) error {
+func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string, includeTx bool) error {
 	if defaultBlockParamRegex.MatchString(numberOrDefaultParameters) {
 		log.Println("Default block parameters")
-		blockInfo := getBlockByDefaultBlockParameters(c, numberOrDefaultParameters)
+		blockInfo := getBlockByDefaultBlockParameters(c, numberOrDefaultParameters, includeTx)
 		return blockInfo
 	} else {
 		number := numberOrDefaultParameters
@@ -128,11 +130,11 @@ func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string) error {
 	}
 }
 
-func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters string) error {
+func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters string, includeTx bool) error {
 	var ctx = context.Background()
 	var blockInfo *types.Header
 	// currently we are dealing with header only we will add query params to get full block
-	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByNumber", defaultBlockParameters, false)
+	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByNumber", defaultBlockParameters, includeTx)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
@@ -324,23 +326,25 @@ func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters strin
 			})
 		}
 		log.Println(blockNumber)
-		blockInfo, err := client.HeaderByNumber(context.Background(), blockNumber)
+		var ctx = context.Background()
+		var uncle *types.Header
+		err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", blockNumber, index)
 		if err != nil {
 			log.Print("Error fetching block info:", err)
 		}
-		return c.JSON(blockInfo)
+		return c.JSON(uncle)
 	}
 }
 
 func getUncleByDefaultBlockParametersAndIndex(c *fiber.Ctx, defaultBlockParameters string, index string) error {
 	var ctx = context.Background()
-	var blockInfo *types.Header
+	var uncle *types.Header
 
-	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getUncleByBlockNumberAndIndex", defaultBlockParameters, index)
+	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", defaultBlockParameters, index)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(blockInfo)
+	return c.JSON(uncle)
 }
 
 func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error {
@@ -355,4 +359,60 @@ func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error 
 		log.Print("Error fetching block info:", err)
 	}
 	return c.JSON(blockInfo)
+}
+
+func getUncleCountByBlockIdentifier(c *fiber.Ctx) error {
+	identifier := c.Params("identifier")
+	log.Print(identifier)
+
+	// Check if identifier is a block hash or block number
+	if hashRegex.MatchString(identifier) {
+		log.Println("Block hash")
+		uncleCount := getUncleCountByBlockHash(c, identifier)
+		return uncleCount
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+		log.Println("Block number")
+		uncleCount := getUncleCountByBlockNumber(c, identifier)
+		return uncleCount
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid identifier",
+		})
+	}
+}
+
+func getUncleCountByBlockHash(c *fiber.Ctx, hash string) error {
+	blockHash := common.HexToHash(hash)
+	log.Println(blockHash)
+
+	var ctx = context.Background()
+	var uncleCount *big.Int
+
+	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockHash", blockHash)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(uncleCount)
+}
+
+func getUncleCountByBlockNumber(c *fiber.Ctx, number string) error {
+	number = number[2:] // Remove 0x prefix
+	log.Println(number)
+
+	blockNumber, success := new(big.Int).SetString(number, 16)
+	if !success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+	log.Println(blockNumber)
+
+	var ctx = context.Background()
+	var uncleCount *big.Int
+
+	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", blockNumber)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(uncleCount)
 }

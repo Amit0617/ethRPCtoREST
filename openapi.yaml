@@ -38,7 +38,7 @@ paths:
               - type: string
               - $ref: "#/components/schemas/hash32"
               - $ref: "#/components/schemas/uint"
-        - name: includeTxns
+        - name: includeTx
           in: query
           description: If true, it returns the full transaction objects. If false, only the hashes of the transactions.
           required: true
