@@ -394,22 +394,39 @@ func getUncleCountByBlockHash(c *fiber.Ctx, hash string) error {
 	return c.JSON(uncleCount)
 }
 
-func getUncleCountByBlockNumber(c *fiber.Ctx, number string) error {
-	number = number[2:] // Remove 0x prefix
-	log.Println(number)
+func getUncleCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParameters string) error {
+	if defaultBlockParamRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Default block parameters")
+		uncleCount := getUncleCountByDefaultBlockParameters(c, numberOrDefaultParameters)
+		return uncleCount
+	} else {
+		number := numberOrDefaultParameters
+		log.Println(number)
 
-	blockNumber, success := new(big.Int).SetString(number, 16)
-	if !success {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
-		})
+		blockNumber, success := new(big.Int).SetString(number[2:], 16)
+		if !success {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid number",
+			})
+		}
+		log.Println(blockNumber)
+
+		var ctx = context.Background()
+		var uncleCount *big.Int
+
+		err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", number)
+		if err != nil {
+			log.Print("Error fetching block info:", err)
+		}
+		return c.JSON(uncleCount)
 	}
-	log.Println(blockNumber)
+}
 
+func getUncleCountByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters string) error {
 	var ctx = context.Background()
 	var uncleCount *big.Int
 
-	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", blockNumber)
+	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", defaultBlockParameters)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
