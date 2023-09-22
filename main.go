@@ -75,10 +75,9 @@ func main() {
 func getBlockByIdentifier(c *fiber.Ctx) error {
 	identifier := c.Params("identifier")
 	includeTx := c.QueryBool("includeTx")
-	blockHashRegex := hashRegex
 
 	// Check if identifier is a block hash or block number
-	if blockHashRegex.MatchString(identifier) {
+	if hashRegex.MatchString(identifier) {
 		log.Println("Block hash")
 		blockInfo := getBlockByHash(c, identifier, includeTx)
 		return blockInfo
@@ -264,8 +263,7 @@ func toBlockNumArg(number *big.Int) string {
 func getTransactionReceiptByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	// Check if hash is a valid transaction hash
-	transactionHashRegex := hashRegex
-	if transactionHashRegex.MatchString(hash) {
+	if hashRegex.MatchString(hash) {
 		transactionHash := common.HexToHash(hash)
 		log.Println(transactionHash)
 		transactionReceipt, err := client.TransactionReceipt(context.Background(), transactionHash)
