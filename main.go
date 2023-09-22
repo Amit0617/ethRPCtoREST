@@ -316,10 +316,9 @@ func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters strin
 		return blockInfo
 	} else {
 		number := numberOrDefaultParameters
-		number = number[2:] // Remove 0x prefix
 		log.Println(number)
 
-		blockNumber, success := new(big.Int).SetString(number, 16)
+		blockNumber, success := new(big.Int).SetString(number[2:], 16)
 		if !success {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Invalid number",
@@ -328,7 +327,7 @@ func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters strin
 		log.Println(blockNumber)
 		var ctx = context.Background()
 		var uncle *types.Header
-		err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", blockNumber, index)
+		err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", number, index)
 		if err != nil {
 			log.Print("Error fetching block info:", err)
 		}
