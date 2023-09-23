@@ -146,16 +146,12 @@ func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters strin
 }
 
 func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error {
-	// decimal to hexadecimal conversion
-	intNumber, success := new(big.Int).SetString(number, 10)
-	if !success {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid number",
 		})
 	}
-
-	hexNumber := fmt.Sprintf("0x%x", intNumber)
-	log.Println(hexNumber)
 
 	var ctx = context.Background()
 	var blockInfo *types.Header
@@ -242,16 +238,12 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 		return c.JSON(json)
 	} else if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
 		log.Println("Decimal number")
-		// decimal to hexadecimal conversion
-		intNumber, success := new(big.Int).SetString(numberOrDefaultParameters, 10)
-		if !success {
+		hexNumber := decimalToHex(numberOrDefaultParameters)
+		if hexNumber == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Invalid number",
 			})
 		}
-
-		hexNumber := fmt.Sprintf("0x%x", intNumber)
-		log.Println(hexNumber)
 
 		var ctx = context.Background()
 		err := rpcClient.CallContext(ctx, &json, "eth_getTransactionByBlockNumberAndIndex", hexNumber, index)
@@ -396,16 +388,12 @@ func getUncleByDefaultBlockParametersAndIndex(c *fiber.Ctx, defaultBlockParamete
 }
 
 func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) error {
-	// decimal to hexadecimal conversion
-	intNumber, success := new(big.Int).SetString(number, 10)
-	if !success {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid number",
 		})
 	}
-
-	hexNumber := fmt.Sprintf("0x%x", intNumber)
-	log.Println(hexNumber)
 
 	var ctx = context.Background()
 	var uncle *types.Header
@@ -509,16 +497,12 @@ func getUncleCountByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters 
 }
 
 func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
-	// decimal to hexadecimal conversion
-	intNumber, success := new(big.Int).SetString(number, 10)
-	if !success {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid number",
 		})
 	}
-
-	hexNumber := fmt.Sprintf("0x%x", intNumber)
-	log.Println(hexNumber)
 
 	var ctx = context.Background()
 	var uncleCount *big.Int
@@ -528,4 +512,16 @@ func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
 		log.Print("Error fetching block info:", err)
 	}
 	return c.JSON(uncleCount)
+}
+
+func decimalToHex(number string) string {
+	// decimal to hexadecimal conversion
+	intNumber, success := new(big.Int).SetString(number, 10)
+	if !success {
+		return ""
+	}
+
+	hexNumber := fmt.Sprintf("0x%x", intNumber)
+	log.Println(hexNumber)
+	return hexNumber
 }
