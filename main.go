@@ -33,6 +33,7 @@ var hashRegex = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 
 // Regex to allow for default block identifiers
 var blockNumberRegex = regexp.MustCompile(`^0x([1-9a-f]+[0-9a-f]*|0)$`)
+var decimalNumberRegex = regexp.MustCompile(`^([1-9][0-9]*|0)$`)
 var defaultBlockParamRegex = regexp.MustCompile(`^(earliest|latest|pending|safe|finalized)$`)
 
 func main() {
@@ -81,7 +82,7 @@ func getBlockByIdentifier(c *fiber.Ctx) error {
 		log.Println("Block hash")
 		blockInfo := getBlockByHash(c, identifier, includeTx)
 		return blockInfo
-	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) || decimalNumberRegex.MatchString(identifier) {
 		log.Println("Block number")
 		blockInfo := getBlockByNumber(c, identifier, includeTx)
 		return blockInfo
@@ -109,6 +110,10 @@ func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string, includeTx 
 		log.Println("Default block parameters")
 		blockInfo := getBlockByDefaultBlockParameters(c, numberOrDefaultParameters, includeTx)
 		return blockInfo
+	} else if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		blockInfo := getBlockByDecimalNumber(c, numberOrDefaultParameters, includeTx)
+		return blockInfo
 	} else {
 		number := numberOrDefaultParameters
 		number = number[2:] // Remove 0x prefix
@@ -134,6 +139,28 @@ func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters strin
 	var blockInfo *types.Header
 	// currently we are dealing with header only we will add query params to get full block
 	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByNumber", defaultBlockParameters, includeTx)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(blockInfo)
+}
+
+func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error {
+	// decimal to hexadecimal conversion
+	intNumber, success := new(big.Int).SetString(number, 10)
+	if !success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	hexNumber := fmt.Sprintf("0x%X", intNumber)
+	log.Println(hexNumber)
+
+	var ctx = context.Background()
+	var blockInfo *types.Header
+
+	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByNumber", hexNumber, includeTx)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
@@ -182,7 +209,7 @@ func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
 		log.Println("Block hash")
 		blockInfo := getTransactionByBlockHashAndIndex(c, identifier, uint(indexNumber.Uint64()))
 		return blockInfo
-	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) || decimalNumberRegex.MatchString(identifier) {
 		log.Println("Block number")
 		blockInfo := getTransactionByBlockNumberAndIndex(c, identifier, index)
 		return blockInfo
@@ -213,6 +240,26 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 			log.Print("Error fetching transaction info:", err)
 		}
 		return c.JSON(json)
+	} else if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		// decimal to hexadecimal conversion
+		intNumber, success := new(big.Int).SetString(numberOrDefaultParameters, 10)
+		if !success {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid number",
+			})
+		}
+
+		hexNumber := fmt.Sprintf("0x%X", intNumber)
+		log.Println(hexNumber)
+
+		var ctx = context.Background()
+		err := rpcClient.CallContext(ctx, &json, "eth_getTransactionByBlockNumberAndIndex", hexNumber, index)
+		if err != nil {
+			log.Print("Error fetching transaction info:", err)
+		}
+		return c.JSON(json)
+
 	} else {
 		number := numberOrDefaultParameters
 		number = number[2:] // Remove 0x prefix
@@ -296,7 +343,7 @@ func getUncleByBlockIdentifierAndIndex(c *fiber.Ctx) error {
 		log.Println("Block hash")
 		blockInfo := getUncleByBlockHashAndIndex(c, identifier, index)
 		return blockInfo
-	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) || decimalNumberRegex.MatchString(identifier) {
 		log.Println("Block number")
 		blockInfo := getUncleByBlockNumberAndIndex(c, identifier, index)
 		return blockInfo
@@ -310,8 +357,12 @@ func getUncleByBlockIdentifierAndIndex(c *fiber.Ctx) error {
 func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters string, index string) error {
 	if defaultBlockParamRegex.MatchString(numberOrDefaultParameters) {
 		log.Println("Default block parameters")
-		blockInfo := getUncleByDefaultBlockParametersAndIndex(c, numberOrDefaultParameters, index)
-		return blockInfo
+		uncle := getUncleByDefaultBlockParametersAndIndex(c, numberOrDefaultParameters, index)
+		return uncle
+	} else if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		uncle := getUncleByDecimalNumberAndIndex(c, numberOrDefaultParameters, index)
+		return uncle
 	} else {
 		number := numberOrDefaultParameters
 		log.Println(number)
@@ -338,6 +389,28 @@ func getUncleByDefaultBlockParametersAndIndex(c *fiber.Ctx, defaultBlockParamete
 	var uncle *types.Header
 
 	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", defaultBlockParameters, index)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(uncle)
+}
+
+func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) error {
+	// decimal to hexadecimal conversion
+	intNumber, success := new(big.Int).SetString(number, 10)
+	if !success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	hexNumber := fmt.Sprintf("0x%X", intNumber)
+	log.Println(hexNumber)
+
+	var ctx = context.Background()
+	var uncle *types.Header
+
+	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", hexNumber, index)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
@@ -397,6 +470,10 @@ func getUncleCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParameters string) 
 		log.Println("Default block parameters")
 		uncleCount := getUncleCountByDefaultBlockParameters(c, numberOrDefaultParameters)
 		return uncleCount
+	} else if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		uncleCount := getUncleCountByDecimalNumber(c, numberOrDefaultParameters)
+		return uncleCount
 	} else {
 		number := numberOrDefaultParameters
 		log.Println(number)
@@ -425,6 +502,28 @@ func getUncleCountByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters 
 	var uncleCount *big.Int
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", defaultBlockParameters)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(uncleCount)
+}
+
+func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
+	// decimal to hexadecimal conversion
+	intNumber, success := new(big.Int).SetString(number, 10)
+	if !success {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	hexNumber := fmt.Sprintf("0x%X", intNumber)
+	log.Println(hexNumber)
+
+	var ctx = context.Background()
+	var uncleCount *big.Int
+
+	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", hexNumber)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}

@@ -38,10 +38,11 @@ paths:
               - type: string
               - $ref: "#/components/schemas/hash32"
               - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
         - name: includeTx
           in: query
           description: If true, it returns the full transaction objects. If false, only the hashes of the transactions.
-          required: true
+          required: false
           schema:
             type: boolean
       responses:
@@ -124,12 +125,15 @@ paths:
               - type: string
               - $ref: "#/components/schemas/hash32"
               - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
         - name: index
           in: path
           description: Integer of the transaction index position.
           required: true
           schema:
-            $ref: "#/components/schemas/uint"
+            oneOf:
+              - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
       responses:
         "200":
           description: Transaction information.
@@ -177,12 +181,15 @@ paths:
               - type: string
               - $ref: "#/components/schemas/hash32"
               - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
         - name: index
           in: path
           description: The uncle's index position.
           required: true
           schema:
-            $ref: "#/components/schemas/uint"
+            oneOf:
+              - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
       responses:
         "200":
           description: A block object, or null when no block was found.
@@ -208,6 +215,7 @@ paths:
               - type: string
               - $ref: "#/components/schemas/hash32"
               - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
       responses:
         "200":
           description: Integer of the number of uncles in this block.
@@ -305,6 +313,10 @@ components:
       title: hex encoded address
       type: string
       pattern: ^0x[0-9,a-f,A-F]{40}$
+    decimal:
+      title: decimal encoded number
+      type: string
+      pattern: ^([1-9][0-9]*|0)$
 
     AccessListEntry:
       title: Access list entry
