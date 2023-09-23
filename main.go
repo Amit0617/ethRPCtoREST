@@ -154,7 +154,7 @@ func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error 
 		})
 	}
 
-	hexNumber := fmt.Sprintf("0x%X", intNumber)
+	hexNumber := fmt.Sprintf("0x%x", intNumber)
 	log.Println(hexNumber)
 
 	var ctx = context.Background()
@@ -250,7 +250,7 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 			})
 		}
 
-		hexNumber := fmt.Sprintf("0x%X", intNumber)
+		hexNumber := fmt.Sprintf("0x%x", intNumber)
 		log.Println(hexNumber)
 
 		var ctx = context.Background()
@@ -404,7 +404,7 @@ func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) 
 		})
 	}
 
-	hexNumber := fmt.Sprintf("0x%X", intNumber)
+	hexNumber := fmt.Sprintf("0x%x", intNumber)
 	log.Println(hexNumber)
 
 	var ctx = context.Background()
@@ -517,7 +517,7 @@ func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
 		})
 	}
 
-	hexNumber := fmt.Sprintf("0x%X", intNumber)
+	hexNumber := fmt.Sprintf("0x%x", intNumber)
 	log.Println(hexNumber)
 
 	var ctx = context.Background()
