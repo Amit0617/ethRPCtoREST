@@ -27,7 +27,7 @@ var rpcClient *rpc.Client
 var hashRegex = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 
 // A block number also allows default block identifiers such as "earliest", "latest" and "pending"
-// TODO: A block number can also be a decimal number without 0x prefix (part of my proposal)
+// A block number can also be a decimal number without 0x prefix (part of my proposal) - defined by decimalNumberRegex
 // A block number can also be a hex number with 0x prefix
 // A block number will always consist of a non-zero character after 0x, except for "0x0".
 
@@ -96,12 +96,14 @@ func getBlockByIdentifier(c *fiber.Ctx) error {
 // getBlockByHash retrieves block information by hash and returns it as JSON.
 func getBlockByHash(c *fiber.Ctx, hash string, includeTx bool) error {
 	blockHash := common.HexToHash(hash)
-	log.Println(blockHash)
-	block, err := client.HeaderByHash(context.Background(), blockHash)
+	log.Println(blockHash, includeTx)
+	var ctx = context.Background()
+	var blockInfo *types.Header
+	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByHash", hash, includeTx)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(block)
+	return c.JSON(blockInfo)
 }
 
 // getBlockByNumber retrieves block information by block number or default block parameters and returns it as JSON.
@@ -116,17 +118,21 @@ func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string, includeTx 
 		return blockInfo
 	} else {
 		number := numberOrDefaultParameters
-		number = number[2:] // Remove 0x prefix
 		log.Println(number)
 
-		blockNumber, success := new(big.Int).SetString(number, 16)
+		// verifying if a valid kind of hex is provided
+		blockNumber, success := new(big.Int).SetString(number[2:], 16)
 		if !success {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Invalid number",
 			})
 		}
 		log.Println(blockNumber)
-		blockInfo, err := client.HeaderByNumber(context.Background(), blockNumber)
+
+		var ctx = context.Background()
+		var blockInfo *types.Header
+
+		err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByNumber", number, includeTx)
 		if err != nil {
 			log.Print("Error fetching block info:", err)
 		}
@@ -137,7 +143,6 @@ func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string, includeTx 
 func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters string, includeTx bool) error {
 	var ctx = context.Background()
 	var blockInfo *types.Header
-	// currently we are dealing with header only we will add query params to get full block
 	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByNumber", defaultBlockParameters, includeTx)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
