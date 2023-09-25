@@ -189,12 +189,28 @@ func getTransactionByHash(c *fiber.Ctx) error {
 
 func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
 	identifier := c.Params("identifier")
-	index := c.Params("index")
+	index := c.Params("index") // hex or decimal string
 	log.Print(identifier)
 	log.Print(index)
-	// Check if index is a valid uint number by converting hex to uint
-	indexNumber, success := new(big.Int).SetString(index[2:], 16)
-	if !success {
+	var indexNumber big.Int
+	if blockNumberRegex.MatchString(index) {
+		// Check if index is a valid number by converting hex to decimal
+		indexNumberTemp, success := new(big.Int).SetString(index[2:], 16)
+		if !success {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid index",
+			})
+		}
+		indexNumber = *indexNumberTemp
+	} else if decimalNumberRegex.MatchString(index) {
+		// index is supposed to be a hex string
+		index = decimalToHex(index)
+		if index == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid index",
+			})
+		}
+	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid index",
 		})
@@ -322,9 +338,23 @@ func getUncleByBlockIdentifierAndIndex(c *fiber.Ctx) error {
 	index := c.Params("index")
 	log.Print(identifier)
 	log.Print(index)
-	// Check if index is a valid uint number by converting hex to uint
-	_, success := new(big.Int).SetString(index[2:], 16)
-	if !success {
+	if blockNumberRegex.MatchString(index) {
+		// Check if index is a valid number by converting hex to decimal
+		_, success := new(big.Int).SetString(index[2:], 16)
+		if !success {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid index",
+			})
+		}
+	} else if decimalNumberRegex.MatchString(index) {
+		// index is supposed to be a hex string
+		index = decimalToHex(index)
+		if index == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid index",
+			})
+		}
+	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid index",
 		})
