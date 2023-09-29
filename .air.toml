@@ -1,0 +1,21 @@
+# .air.toml
+root = "."
+tmp_dir = "tmp"
+[build]
+  cmd = "go build -o ./application ./main.go"
+  bin = "application"
+  delay = 1000 # ms
+  exclude_dir = ["assets", "tmp", "vendor", "node_modules"]
+  include_ext = ["go"]
+  exclude_regex = ["_test\\.go"]
+  log = "air.log"
+  stop_on_error = true
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[misc]
+  clean_on_exit = true

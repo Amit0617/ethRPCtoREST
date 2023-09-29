@@ -4,6 +4,14 @@ This Project is part of Ethereum Protocol Fellowship and following proposal can 
 
 `openapi.yaml` consists of OPEN API specification for the REST API. It can also be found at https://app.swaggerhub.com/apis-docs/AMITMISHRA0617/EthereumAPIs/1.0.0#
 
+### How to use it?
+
+1. Download `application` binary, make it executable using `chmod +x ./application`.
+2. Execute it `./application`.
+3. And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
+
+> NOTE: This comes with a free tier rate limited rpc url. If you are concerned of privacy, latency etc. Build the binary yourself by setting up it through following method.
+
 ### Setting up
 
 1. ```bash
@@ -17,7 +25,7 @@ This Project is part of Ethereum Protocol Fellowship and following proposal can 
    Fill value for `RPC_URL` inside it.
 
 3. ```bash
-   go mod tidy && go run ./main.go
+   go mod tidy && go build -o ./application ./main.go
    ```
 
 And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
