@@ -1,5 +1,3 @@
-This Project is part of Ethereum Protocol Fellowship and following proposal can be found [there](https://github.com/eth-protocol-fellows/cohort-four/blob/master/projects/REST-wrapper.md).
-
 ### API SPEC
 
 `openapi.yaml` consists of OPEN API specification for the REST API. It can also be found at https://app.swaggerhub.com/apis-docs/AMITMISHRA0617/EthereumAPIs/1.0.0#
@@ -29,6 +27,10 @@ This Project is part of Ethereum Protocol Fellowship and following proposal can 
    ```
 
 And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
+
+---
+
+> This Project is part of Ethereum Protocol Fellowship and following proposal can be found [there](https://github.com/eth-protocol-fellows/cohort-four/blob/master/projects/REST-wrapper.md).
 
 # REST Wrapper
 
@@ -134,11 +136,3 @@ The end goal of the project is to make it easier and more standard for users to 
 https://pkg.go.dev/github.com/ethereum/go-ethereum/ethclient
 [`ethclient` package Documentation](https://geth.ethereum.org/docs/developers/dapp-developer/native#overview)
 [RPC wrapper presentation slides](https://drive.google.com/file/d/1RoFP3nbU8xhzfa7nP6B5SioDfrzaMao-/view?usp=sharing)
-
-```
-
-```
-
-```
-
-```
