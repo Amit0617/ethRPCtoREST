@@ -103,7 +103,7 @@ func getBlockByHash(c *fiber.Ctx, hash string, includeTx bool) error {
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(blockInfo)
+	return c.JSON(StringifyHeader(blockInfo))
 }
 
 // getBlockByNumber retrieves block information by block number or default block parameters and returns it as JSON.
@@ -136,7 +136,7 @@ func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string, includeTx 
 		if err != nil {
 			log.Print("Error fetching block info:", err)
 		}
-		return c.JSON(blockInfo)
+		return c.JSON(StringifyHeader(blockInfo))
 	}
 }
 
@@ -147,7 +147,7 @@ func getBlockByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters strin
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(blockInfo)
+	return c.JSON(StringifyHeader(blockInfo))
 }
 
 func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error {
@@ -165,7 +165,7 @@ func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error 
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(blockInfo)
+	return c.JSON(StringifyHeader(blockInfo))
 }
 
 func getTransactionByHash(c *fiber.Ctx) error {
@@ -368,12 +368,12 @@ func getUncleByBlockIdentifierAndIndex(c *fiber.Ctx) error {
 	// Check if identifier is a block hash or block number
 	if hashRegex.MatchString(identifier) {
 		log.Println("Block hash")
-		blockInfo := getUncleByBlockHashAndIndex(c, identifier, index)
-		return blockInfo
+		uncle := getUncleByBlockHashAndIndex(c, identifier, index)
+		return uncle
 	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) || decimalNumberRegex.MatchString(identifier) {
 		log.Println("Block number")
-		blockInfo := getUncleByBlockNumberAndIndex(c, identifier, index)
-		return blockInfo
+		uncle := getUncleByBlockNumberAndIndex(c, identifier, index)
+		return uncle
 	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid identifier",
@@ -407,7 +407,7 @@ func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters strin
 		if err != nil {
 			log.Print("Error fetching block info:", err)
 		}
-		return c.JSON(uncle)
+		return c.JSON(StringifyHeader(uncle))
 	}
 }
 
@@ -419,7 +419,7 @@ func getUncleByDefaultBlockParametersAndIndex(c *fiber.Ctx, defaultBlockParamete
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(uncle)
+	return c.JSON(StringifyHeader(uncle))
 }
 
 func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) error {
@@ -437,7 +437,7 @@ func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) 
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(uncle)
+	return c.JSON(StringifyHeader(uncle))
 }
 
 func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error {
@@ -445,13 +445,13 @@ func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error 
 	log.Println(blockHash)
 
 	var ctx = context.Background()
-	var blockInfo *types.Header
+	var uncle *types.Header
 
-	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getUncleByBlockHashAndIndex", blockHash, index)
+	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockHashAndIndex", blockHash, index)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(blockInfo)
+	return c.JSON(StringifyHeader(uncle))
 }
 
 func getUncleCountByBlockIdentifier(c *fiber.Ctx) error {
@@ -559,4 +559,34 @@ func decimalToHex(number string) string {
 	hexNumber := fmt.Sprintf("0x%x", intNumber)
 	log.Println(hexNumber)
 	return hexNumber
+}
+
+// StringifyHeader converts given block header and returns stringified values as map
+func StringifyHeader(blockInfo *types.Header) map[string]interface{} {
+	// return a map of all items in struct
+	// TODO: It should be more modular where for each item in a struct it is converted to string using the methods suitable according to the types of item
+	stringfied := map[string]interface{}{
+		"number":           blockInfo.Number.String(),
+		"timestamp":        fmt.Sprint(blockInfo.Time),
+		"miner":            blockInfo.Coinbase.String(),
+		"difficulty":       blockInfo.Difficulty.String(),
+		"size":             blockInfo.Size(),
+		"gasUsed":          fmt.Sprint(blockInfo.GasUsed),
+		"gasLimit":         fmt.Sprint(blockInfo.GasLimit),
+		"extraData":        string(blockInfo.Extra),
+		"baseFeePerGas":    blockInfo.BaseFee,
+		"hash":             blockInfo.Hash().String(),
+		"parentHash":       blockInfo.ParentHash.String(),
+		"sha3Uncles":       blockInfo.UncleHash.String(),
+		"stateRoot":        blockInfo.Root.String(),
+		"nonce":            blockInfo.Nonce,
+		"blobGasUsed":      blockInfo.BlobGasUsed,
+		"logsBloom":        blockInfo.Bloom.Big().String(),
+		"mixHash":          blockInfo.MixDigest.String(),
+		"receiptsRoot":     blockInfo.ReceiptHash.String(),
+		"transactionsRoot": blockInfo.TxHash.String(),
+		"withdrawalsRoot":  blockInfo.WithdrawalsHash,
+		"excessBlobGas":    blockInfo.ExcessBlobGas,
+	}
+	return stringfied
 }
