@@ -43,7 +43,7 @@ func main() {
 		log.Fatalf("Error loading environment variables file")
 	}
 
-	RPC_URL = os.Getenv("RPC_URL")
+	RPC_URL = os.Args[1]
 	log.Println(RPC_URL)
 
 	client, err = ethclient.Dial(RPC_URL)

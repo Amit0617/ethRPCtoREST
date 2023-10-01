@@ -2,8 +2,8 @@
 root = "."
 tmp_dir = "tmp"
 [build]
-  cmd = "go build -o ./application ./main.go"
-  bin = "application"
+  cmd = "go build -o ./ethRPCtoREST ./main.go"
+  bin = "ethRPCtoREST"
   delay = 1000 # ms
   exclude_dir = ["assets", "tmp", "vendor", "node_modules"]
   include_ext = ["go"]

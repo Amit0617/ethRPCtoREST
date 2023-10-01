@@ -1,29 +1,27 @@
+### ethRPCtoREST - RESTful interface for execution layer apis
+
+But why? what's ethereum? Still clueless? Explainer for where does it fits the equation - https://amit0617.hashnode.dev/web2-to-web3-in-one-shot
+
 ### API SPEC
 
 `openapi.yaml` consists of OPEN API specification for the REST API. It can also be found at https://app.swaggerhub.com/apis-docs/AMITMISHRA0617/EthereumAPIs/1.0.0#
 
 ### How to use it?
 
-1. Download `application` binary, make it executable using `chmod +x ./application`.
-2. Execute it `./application`.
+1. Download `ethRPCtoREST` binary, make it executable using `chmod +x ./ethRPCtoREST`.
+2. Execute it `./ethRPCtoREST $RPC_URL`.
 3. And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
 
 > NOTE: This comes with a free tier rate limited rpc url. If you are concerned of privacy, latency etc. Build the binary yourself by setting up it through following method.
 
-### Setting up
+### Setting up development enviroment
 
 1. ```bash
    git clone https://github.com/amit0617/ethRPCtoREST.git && cd ethRPCtoREST
    ```
 
 2. ```bash
-   mv .env.example .env
-   ```
-
-   Fill value for `RPC_URL` inside it.
-
-3. ```bash
-   go mod tidy && go build -o ./application ./main.go
+   air -- $RPC_URL
    ```
 
 And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
