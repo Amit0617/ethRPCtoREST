@@ -581,7 +581,7 @@ func StringifyHeader(blockInfo *types.Header) map[string]interface{} {
 		"stateRoot":        blockInfo.Root.String(),
 		"nonce":            blockInfo.Nonce,
 		"blobGasUsed":      blockInfo.BlobGasUsed,
-		"logsBloom":        blockInfo.Bloom.Big().String(),
+		"logsBloom":        blockInfo.Bloom,
 		"mixHash":          blockInfo.MixDigest.String(),
 		"receiptsRoot":     blockInfo.ReceiptHash.String(),
 		"transactionsRoot": blockInfo.TxHash.String(),

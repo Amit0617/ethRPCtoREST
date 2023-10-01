@@ -1,8 +1,10 @@
-### ethRPCtoREST - RESTful interface for execution layer apis
+# ethRPCtoREST - RESTful interface for execution layer apis
 
-But why? what's ethereum? Still clueless? Explainer for where does it fits the equation - https://amit0617.hashnode.dev/web2-to-web3-in-one-shot
+Basically, you can query the network nodes and interact with them just through your browser.
 
-### API SPEC
+Still clueless? Explainer for where does it fits the equation - https://amit0617.hashnode.dev/web2-to-web3-in-one-shot and slides no. 8 and 9 of the [ppt](https://drive.google.com/file/d/1RoFP3nbU8xhzfa7nP6B5SioDfrzaMao-/view)
+
+## API SPEC
 
 `openapi.yaml` consists of OPEN API specification for the REST API. It can also be found at https://app.swaggerhub.com/apis-docs/AMITMISHRA0617/EthereumAPIs/1.0.0#
 
