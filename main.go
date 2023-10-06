@@ -62,8 +62,9 @@ func main() {
 	app.Get("/eth/tx/receipt/:hash", getTransactionReceiptByHash)
 	app.Get("/eth/uncle/block/:identifier/:index", getUncleByBlockIdentifierAndIndex)
 	app.Get("/eth/unclecount/block/:identifier", getUncleCountByBlockIdentifier)
+	app.Get("/eth/block/txcount/:identifier", getBlockTransactionCountByIdentifier)
 
-	// TODO: shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
+	// TODO: also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
 	// - when user will hit the server with a route matching the routes of APIs but without any query params. like /eth/block or /eth/transaction these will consist of usage of APIs and expected query params for that route specifically.
@@ -550,6 +551,93 @@ func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
 	return c.JSON(uncleCount)
 }
 
+// getBlockTransactionCountByIdentifier retrieves block transaction count by block hash or block number and returns it as JSON.
+func getBlockTransactionCountByIdentifier(c *fiber.Ctx) error {
+	identifier := c.Params("identifier")
+	log.Print(identifier)
+
+	// Check if identifier is a block hash or block number
+	if hashRegex.MatchString(identifier) {
+		log.Println("Block hash")
+		blockTransactionCount := getBlockTransactionCountByBlockHash(c, identifier)
+		return blockTransactionCount
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+		log.Println("Block number")
+		blockTransactionCount := getBlockTransactionCountByBlockNumber(c, identifier)
+		return blockTransactionCount
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid identifier",
+		})
+	}
+}
+
+// getBlockTransactionCountByBlockHash retrieves block transaction count by block hash and returns it as JSON.
+func getBlockTransactionCountByBlockHash(c *fiber.Ctx, hash string) error {
+	blockHash := common.HexToHash(hash)
+	log.Println(blockHash)
+
+	var ctx = context.Background()
+	var blockTransactionCount string
+
+	err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByHash", blockHash)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+
+	return c.JSON(StringifyCount(blockTransactionCount))
+}
+
+// getBlockTransactionCountByBlockNumber retrieves block transaction count by block number and returns it as JSON.
+func getBlockTransactionCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParameters string) error {
+	if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		blockTransactionCount := getBlockTransactionCountByDecimalNumber(c, numberOrDefaultParameters)
+		return blockTransactionCount
+	} else {
+		number := numberOrDefaultParameters
+		log.Println(number)
+
+		if !defaultBlockParamRegex.MatchString(number) {
+			blockNumber, success := new(big.Int).SetString(number[2:], 16)
+			if !success {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid number",
+				})
+			}
+			log.Println(blockNumber)
+		}
+
+		var ctx = context.Background()
+		var blockTransactionCount string
+
+		err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByNumber", number)
+		if err != nil {
+			log.Print("Error fetching block info:", err)
+		}
+
+		return c.JSON(StringifyCount(blockTransactionCount))
+	}
+}
+
+func getBlockTransactionCountByDecimalNumber(c *fiber.Ctx, number string) error {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	var ctx = context.Background()
+	var blockTransactionCount string
+
+	err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByNumber", hexNumber)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(StringifyCount(blockTransactionCount))
+}
+
 func decimalToHex(number string) string {
 	// decimal to hexadecimal conversion
 	intNumber, success := new(big.Int).SetString(number, 10)
@@ -590,4 +678,15 @@ func StringifyHeader(blockInfo *types.Header) map[string]interface{} {
 		"excessBlobGas":    blockInfo.ExcessBlobGas,
 	}
 	return stringfied
+}
+
+// StringifyCount converts given block transaction count as hex string and returns decimal number or nil
+func StringifyCount(blockTransactionCount string) *big.Int {
+	// converting hex string to decimal
+	blockTransactionCount = blockTransactionCount[2:]
+	finalTransactionCount, success := new(big.Int).SetString(blockTransactionCount, 16)
+	if !success {
+		return nil
+	}
+	return finalTransactionCount
 }
