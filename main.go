@@ -465,7 +465,7 @@ func getUncleCountByBlockIdentifier(c *fiber.Ctx) error {
 		log.Println("Block hash")
 		uncleCount := getUncleCountByBlockHash(c, identifier)
 		return uncleCount
-	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) || decimalNumberRegex.MatchString(identifier) {
 		log.Println("Block number")
 		uncleCount := getUncleCountByBlockNumber(c, identifier)
 		return uncleCount
@@ -481,13 +481,13 @@ func getUncleCountByBlockHash(c *fiber.Ctx, hash string) error {
 	log.Println(blockHash)
 
 	var ctx = context.Background()
-	var uncleCount *big.Int
+	var uncleCount string
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockHash", blockHash)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(uncleCount)
+	return c.JSON(StringifyCount(uncleCount))
 }
 
 func getUncleCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParameters string) error {
@@ -512,25 +512,25 @@ func getUncleCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParameters string) 
 		log.Println(blockNumber)
 
 		var ctx = context.Background()
-		var uncleCount *big.Int
+		var uncleCount string
 
 		err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", number)
 		if err != nil {
 			log.Print("Error fetching block info:", err)
 		}
-		return c.JSON(uncleCount)
+		return c.JSON(StringifyCount(uncleCount))
 	}
 }
 
 func getUncleCountByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters string) error {
 	var ctx = context.Background()
-	var uncleCount *big.Int
+	var uncleCount string
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", defaultBlockParameters)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(uncleCount)
+	return c.JSON(StringifyCount(uncleCount))
 }
 
 func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
@@ -542,13 +542,13 @@ func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
 	}
 
 	var ctx = context.Background()
-	var uncleCount *big.Int
+	var uncleCount string
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", hexNumber)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(uncleCount)
+	return c.JSON(StringifyCount(uncleCount))
 }
 
 // getBlockTransactionCountByIdentifier retrieves block transaction count by block hash or block number and returns it as JSON.
@@ -561,7 +561,7 @@ func getBlockTransactionCountByIdentifier(c *fiber.Ctx) error {
 		log.Println("Block hash")
 		blockTransactionCount := getBlockTransactionCountByBlockHash(c, identifier)
 		return blockTransactionCount
-	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) {
+	} else if blockNumberRegex.MatchString(identifier) || defaultBlockParamRegex.MatchString(identifier) || decimalNumberRegex.MatchString(identifier) {
 		log.Println("Block number")
 		blockTransactionCount := getBlockTransactionCountByBlockNumber(c, identifier)
 		return blockTransactionCount
