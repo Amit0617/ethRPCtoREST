@@ -57,12 +57,13 @@ func main() {
 	}
 
 	app.Get("/eth/block/:identifier", getBlockByIdentifier)
-	app.Get("/eth/transaction/:hash", getTransactionByHash)
-	app.Get("/eth/transaction/block/:identifier/:index", getTransactionByIdentifierAndIndex)
-	app.Get("/eth/transaction/receipt/:hash", getTransactionReceiptByHash)
+	app.Get("/eth/tx/:hash", getTransactionByHash)
+	app.Get("/eth/tx/block/:identifier/:index", getTransactionByIdentifierAndIndex)
+	app.Get("/eth/tx/receipt/:hash", getTransactionReceiptByHash)
 	app.Get("/eth/uncle/block/:identifier/:index", getUncleByBlockIdentifierAndIndex)
 	app.Get("/eth/unclecount/block/:identifier", getUncleCountByBlockIdentifier)
 
+	// TODO: shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
 	// - when user will hit the server with a route matching the routes of APIs but without any query params. like /eth/block or /eth/transaction these will consist of usage of APIs and expected query params for that route specifically.
