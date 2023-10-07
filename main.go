@@ -66,6 +66,9 @@ func main() {
 
 	app.Get("/eth/blockNumber", getBlockNumber)
 
+	app.Get("/eth/balance/:address", getBalanceOfAddressAtBlock) // default block parameter is "latest"
+	app.Get("/eth/balance/:address/:identifier", getBalanceOfAddressAtBlock)
+
 	// TODO: also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
@@ -652,6 +655,74 @@ func getBlockNumber(c *fiber.Ctx) error {
 	return c.JSON(StringifyCount(blockNumber))
 }
 
+// getBalanceOfAddressAtBlock retrieves balance of address at block number and returns it in Wei.
+func getBalanceOfAddressAtBlock(c *fiber.Ctx) error {
+	address := c.Params("address")
+	numberOrDefaultParameters := c.Params("identifier", "latest")
+	log.Print(address)
+	log.Print(numberOrDefaultParameters)
+
+	// Check if identifier is a block number
+	if blockNumberRegex.MatchString(numberOrDefaultParameters) || defaultBlockParamRegex.MatchString(numberOrDefaultParameters) || decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Block number")
+		balance := getBalanceOfAddressAtBlockNumber(c, address, numberOrDefaultParameters)
+		return balance
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid identifier",
+		})
+	}
+}
+
+func getBalanceOfAddressAtBlockNumber(c *fiber.Ctx, address string, numberOrDefaultParameters string) error {
+	if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		balance := getBalanceOfAddressAtDecimalNumber(c, address, numberOrDefaultParameters)
+		return balance
+	} else {
+		number := numberOrDefaultParameters
+		log.Println(number)
+
+		if !defaultBlockParamRegex.MatchString(number) {
+			blockNumber, success := new(big.Int).SetString(number[2:], 16)
+			if !success {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid number",
+				})
+			}
+			log.Println(blockNumber)
+		}
+
+		var ctx = context.Background()
+		var balance string
+
+		err := rpcClient.CallContext(ctx, &balance, "eth_getBalance", address, number)
+		if err != nil {
+			log.Print("Error fetching block info:", err)
+		}
+
+		return c.JSON(StringifyCount(balance))
+	}
+}
+
+func getBalanceOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number string) error {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	var ctx = context.Background()
+	var balance string
+
+	err := rpcClient.CallContext(ctx, &balance, "eth_getBalance", address, hexNumber)
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(StringifyCount(balance))
+}
+
 func decimalToHex(number string) string {
 	// decimal to hexadecimal conversion
 	intNumber, success := new(big.Int).SetString(number, 10)
@@ -694,7 +765,7 @@ func StringifyHeader(blockInfo *types.Header) map[string]interface{} {
 	return stringfied
 }
 
-// StringifyCount converts given block transaction count as hex string and returns decimal number or nil
+// StringifyCount converts given hex string and returns decimal number or nil
 func StringifyCount(blockTransactionCount string) *big.Int {
 	// converting hex string to decimal
 	blockTransactionCount = blockTransactionCount[2:]
