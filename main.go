@@ -64,6 +64,8 @@ func main() {
 	app.Get("/eth/unclecount/block/:identifier", getUncleCountByBlockIdentifier)
 	app.Get("/eth/block/txcount/:identifier", getBlockTransactionCountByIdentifier)
 
+	app.Get("/eth/blockNumber", getBlockNumber)
+
 	// TODO: also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
@@ -636,6 +638,18 @@ func getBlockTransactionCountByDecimalNumber(c *fiber.Ctx, number string) error 
 		log.Print("Error fetching block info:", err)
 	}
 	return c.JSON(StringifyCount(blockTransactionCount))
+}
+
+// getBlockNumber retrieves block number and returns it as JSON.
+func getBlockNumber(c *fiber.Ctx) error {
+	var ctx = context.Background()
+	var blockNumber string
+
+	err := rpcClient.CallContext(ctx, &blockNumber, "eth_blockNumber")
+	if err != nil {
+		log.Print("Error fetching block info:", err)
+	}
+	return c.JSON(StringifyCount(blockNumber))
 }
 
 func decimalToHex(number string) string {
