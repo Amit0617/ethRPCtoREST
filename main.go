@@ -662,6 +662,13 @@ func getBalanceOfAddressAtBlock(c *fiber.Ctx) error {
 	log.Print(address)
 	log.Print(numberOrDefaultParameters)
 
+	// Check if address is a valid address
+	if !common.IsHexAddress(address) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid address",
+		})
+	}
+
 	// Check if identifier is a block number
 	if blockNumberRegex.MatchString(numberOrDefaultParameters) || defaultBlockParamRegex.MatchString(numberOrDefaultParameters) || decimalNumberRegex.MatchString(numberOrDefaultParameters) {
 		log.Println("Block number")
