@@ -75,6 +75,9 @@ func main() {
 	app.Get("/eth/txcount/:address", getTransactionCountOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/txcount/:address/:identifier", getTransactionCountOfAddressAtBlock)
 
+	app.Get("/eth/code/:address", getCodeOfAddressAtBlock) // default block parameter is "latest"
+	app.Get("/eth/code/:address/:identifier", getCodeOfAddressAtBlock)
+
 	// TODO: also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
@@ -418,7 +421,7 @@ func getUncleByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters strin
 		var uncle *types.Header
 		err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", number, index)
 		if err != nil {
-			log.Print("Error fetching block info:", err)
+			log.Print("Error fetching uncle:", err)
 		}
 		return c.JSON(StringifyHeader(uncle))
 	}
@@ -430,7 +433,7 @@ func getUncleByDefaultBlockParametersAndIndex(c *fiber.Ctx, defaultBlockParamete
 
 	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", defaultBlockParameters, index)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching uncle:", err)
 	}
 	return c.JSON(StringifyHeader(uncle))
 }
@@ -448,7 +451,7 @@ func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) 
 
 	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockNumberAndIndex", hexNumber, index)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching uncle:", err)
 	}
 	return c.JSON(StringifyHeader(uncle))
 }
@@ -462,7 +465,7 @@ func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error 
 
 	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockHashAndIndex", blockHash, index)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching uncle:", err)
 	}
 	return c.JSON(StringifyHeader(uncle))
 }
@@ -496,7 +499,7 @@ func getUncleCountByBlockHash(c *fiber.Ctx, hash string) error {
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockHash", blockHash)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching uncle count:", err)
 	}
 	return c.JSON(StringifyCount(uncleCount))
 }
@@ -527,7 +530,7 @@ func getUncleCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParameters string) 
 
 		err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", number)
 		if err != nil {
-			log.Print("Error fetching block info:", err)
+			log.Print("Error fetching uncle count:", err)
 		}
 		return c.JSON(StringifyCount(uncleCount))
 	}
@@ -539,7 +542,7 @@ func getUncleCountByDefaultBlockParameters(c *fiber.Ctx, defaultBlockParameters 
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", defaultBlockParameters)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching uncle count:", err)
 	}
 	return c.JSON(StringifyCount(uncleCount))
 }
@@ -557,7 +560,7 @@ func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
 
 	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockNumber", hexNumber)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching uncle count:", err)
 	}
 	return c.JSON(StringifyCount(uncleCount))
 }
@@ -593,7 +596,7 @@ func getBlockTransactionCountByBlockHash(c *fiber.Ctx, hash string) error {
 
 	err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByHash", blockHash)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching block transaction count:", err)
 	}
 
 	return c.JSON(StringifyCount(blockTransactionCount))
@@ -624,7 +627,7 @@ func getBlockTransactionCountByBlockNumber(c *fiber.Ctx, numberOrDefaultParamete
 
 		err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByNumber", number)
 		if err != nil {
-			log.Print("Error fetching block info:", err)
+			log.Print("Error fetching block transaction count:", err)
 		}
 
 		return c.JSON(StringifyCount(blockTransactionCount))
@@ -644,7 +647,7 @@ func getBlockTransactionCountByDecimalNumber(c *fiber.Ctx, number string) error 
 
 	err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByNumber", hexNumber)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching block transaction count:", err)
 	}
 	return c.JSON(StringifyCount(blockTransactionCount))
 }
@@ -656,7 +659,7 @@ func getBlockNumber(c *fiber.Ctx) error {
 
 	err := rpcClient.CallContext(ctx, &blockNumber, "eth_blockNumber")
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching block number:", err)
 	}
 	return c.JSON(StringifyCount(blockNumber))
 }
@@ -725,7 +728,7 @@ func getBalanceOfAddressAtBlockNumber(c *fiber.Ctx, address string, numberOrDefa
 
 		err := rpcClient.CallContext(ctx, &balance, "eth_getBalance", address, number)
 		if err != nil {
-			log.Print("Error fetching block info:", err)
+			log.Print("Error fetching balance:", err)
 		}
 
 		return c.JSON(StringifyCount(balance))
@@ -745,7 +748,7 @@ func getBalanceOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number str
 
 	err := rpcClient.CallContext(ctx, &balance, "eth_getBalance", address, hexNumber)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching balance:", err)
 	}
 	return c.JSON(StringifyCount(balance))
 }
@@ -814,7 +817,7 @@ func getTransactionCountOfAddressAtBlockNumber(c *fiber.Ctx, address string, num
 
 		err := rpcClient.CallContext(ctx, &transactionCount, "eth_getTransactionCount", address, number)
 		if err != nil {
-			log.Print("Error fetching block info:", err)
+			log.Print("Error fetching transaction count:", err)
 		}
 
 		return c.JSON(StringifyCount(transactionCount))
@@ -834,9 +837,96 @@ func getTransactionCountOfAddressAtDecimalNumber(c *fiber.Ctx, address string, n
 
 	err := rpcClient.CallContext(ctx, &transactionCount, "eth_getTransactionCount", address, hexNumber)
 	if err != nil {
-		log.Print("Error fetching block info:", err)
+		log.Print("Error fetching transaction count:", err)
 	}
 	return c.JSON(StringifyCount(transactionCount))
+}
+
+func getCodeOfAddressAtBlock(c *fiber.Ctx) error {
+	address := c.Params("address")
+	numberOrDefaultParameters := c.Params("identifier", "latest")
+	log.Print(address)
+	log.Print(numberOrDefaultParameters)
+
+	// Check if address is a ENS name
+	if strings.Contains(address, ".") {
+		address = resolveENSName(address)
+		if address == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid ENS name",
+			})
+		} else if address == "0x0000000000000000000000000000000000000000" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "ENS name not set",
+			})
+		} else {
+			log.Print("Valid ENS name ", address)
+		}
+		// Check if address is a valid address
+	} else if !common.IsHexAddress(address) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid address",
+		})
+	}
+
+	// Check if identifier is a block number
+	if blockNumberRegex.MatchString(numberOrDefaultParameters) || defaultBlockParamRegex.MatchString(numberOrDefaultParameters) || decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Block number")
+		code := getCodeOfAddressAtBlockNumber(c, address, numberOrDefaultParameters)
+		return code
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid identifier",
+		})
+	}
+}
+
+func getCodeOfAddressAtBlockNumber(c *fiber.Ctx, address string, numberOrDefaultParameters string) error {
+	if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		code := getCodeOfAddressAtDecimalNumber(c, address, numberOrDefaultParameters)
+		return code
+	} else {
+		number := numberOrDefaultParameters
+		log.Println(number)
+
+		if !defaultBlockParamRegex.MatchString(number) {
+			blockNumber, success := new(big.Int).SetString(number[2:], 16)
+			if !success {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid number",
+				})
+			}
+			log.Println(blockNumber)
+		}
+
+		var ctx = context.Background()
+		var code string
+
+		err := rpcClient.CallContext(ctx, &code, "eth_getCode", address, number)
+		if err != nil {
+			log.Print("Error fetching code:", err)
+		}
+		return c.JSON(code)
+	}
+}
+
+func getCodeOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number string) error {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	var ctx = context.Background()
+	var code string
+
+	err := rpcClient.CallContext(ctx, &code, "eth_getCode", address, hexNumber)
+	if err != nil {
+		log.Print("Error fetching code:", err)
+	}
+	return c.JSON(code)
 }
 
 func decimalToHex(number string) string {
