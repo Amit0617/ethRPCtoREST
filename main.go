@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"os"
 	"regexp"
-	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -16,8 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-
-	ens "github.com/wealdtech/go-ens/v3"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -671,22 +668,8 @@ func getBalanceOfAddressAtBlock(c *fiber.Ctx) error {
 	log.Print(address)
 	log.Print(numberOrDefaultParameters)
 
-	// Check if address is a ENS name
-	if strings.Contains(address, ".") {
-		address = resolveENSName(address)
-		if address == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid ENS name",
-			})
-		} else if address == "0x0000000000000000000000000000000000000000" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "ENS name not set",
-			})
-		} else {
-			log.Print("Valid ENS name ", address)
-		}
-		// Check if address is a valid address
-	} else if !common.IsHexAddress(address) {
+	// Check if address is a valid address
+	if !common.IsHexAddress(address) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid address",
 		})
@@ -760,22 +743,8 @@ func getTransactionCountOfAddressAtBlock(c *fiber.Ctx) error {
 	log.Print(address)
 	log.Print(numberOrDefaultParameters)
 
-	// Check if address is a ENS name
-	if strings.Contains(address, ".") {
-		address = resolveENSName(address)
-		if address == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid ENS name",
-			})
-		} else if address == "0x0000000000000000000000000000000000000000" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "ENS name not set",
-			})
-		} else {
-			log.Print("Valid ENS name ", address)
-		}
-		// Check if address is a valid address
-	} else if !common.IsHexAddress(address) {
+	// Check if address is a valid address
+	if !common.IsHexAddress(address) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid address",
 		})
@@ -848,22 +817,8 @@ func getCodeOfAddressAtBlock(c *fiber.Ctx) error {
 	log.Print(address)
 	log.Print(numberOrDefaultParameters)
 
-	// Check if address is a ENS name
-	if strings.Contains(address, ".") {
-		address = resolveENSName(address)
-		if address == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid ENS name",
-			})
-		} else if address == "0x0000000000000000000000000000000000000000" {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "ENS name not set",
-			})
-		} else {
-			log.Print("Valid ENS name ", address)
-		}
-		// Check if address is a valid address
-	} else if !common.IsHexAddress(address) {
+	// Check if address is a valid address
+	if !common.IsHexAddress(address) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid address",
 		})
@@ -980,13 +935,4 @@ func StringifyCount(blockTransactionCount string) *big.Int {
 		return nil
 	}
 	return finalTransactionCount
-}
-
-// ENS resolver wrapper around go-ens/ens converts given ENS name to address
-func resolveENSName(name string) string {
-	address, err := ens.Resolve(client, name)
-	if err != nil {
-		return ""
-	}
-	return address.Hex()
 }
