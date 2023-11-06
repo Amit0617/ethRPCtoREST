@@ -68,14 +68,15 @@ func main() {
 
 	app.Get("/eth/balance/:address", getBalanceOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/balance/:address/:identifier", getBalanceOfAddressAtBlock)
-
+	app.Get("/eth/storage/:address/:position", getStorageAtAddressAndPositionAtBlock) // default block parameter is "latest
+	app.Get("/eth/storage/:address/:position/:identifier", getStorageAtAddressAndPositionAtBlock)
 	app.Get("/eth/txcount/:address", getTransactionCountOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/txcount/:address/:identifier", getTransactionCountOfAddressAtBlock)
 
 	app.Get("/eth/code/:address", getCodeOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/code/:address/:identifier", getCodeOfAddressAtBlock)
 
-	// TODO: also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
+	// TODO:(very low priority) also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
 	// - when user will hit the server with a route matching the routes of APIs but without any query params. like /eth/block or /eth/transaction these will consist of usage of APIs and expected query params for that route specifically.
@@ -882,6 +883,10 @@ func getCodeOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number string
 		log.Print("Error fetching code:", err)
 	}
 	return c.JSON(code)
+}
+
+func getStorageAtAddressAndPositionAtBlock(c *fiber.Ctx) error {
+	panic("Not implemented")
 }
 
 func decimalToHex(number string) string {
