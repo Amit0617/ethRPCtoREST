@@ -2,17 +2,21 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
+
 	"fmt"
 	"log"
 	"math/big"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -886,7 +890,127 @@ func getCodeOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number string
 }
 
 func getStorageAtAddressAndPositionAtBlock(c *fiber.Ctx) error {
-	panic("Not implemented")
+	address := c.Params("address")
+	position := c.Params("position")
+	numberOrDefaultParameters := c.Params("identifier", "latest")
+	log.Print(address)
+	log.Print(position)
+	log.Print(numberOrDefaultParameters)
+
+	key := c.Query("map")
+	log.Print(key)
+
+	// Check if address is a valid address
+	if !common.IsHexAddress(address) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid address",
+		})
+	}
+
+	// Check if position is a valid position
+	if !decimalNumberRegex.MatchString(position) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid position",
+		})
+	}
+
+	// Check if identifier is a block number
+	if blockNumberRegex.MatchString(numberOrDefaultParameters) || defaultBlockParamRegex.MatchString(numberOrDefaultParameters) || decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Block number")
+		storage := getStorageAtAddressAndPositionAtBlockNumber(c, address, position, numberOrDefaultParameters, key)
+		return storage
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid identifier",
+		})
+	}
+}
+
+func getStorageAtAddressAndPositionAtBlockNumber(c *fiber.Ctx, address string, position string, numberOrDefaultParameters string, key string) error {
+	if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		storage := getStorageAtAddressAndPositionAtDecimalNumber(c, address, position, numberOrDefaultParameters, key)
+		return storage
+	} else {
+		number := numberOrDefaultParameters
+		log.Println(number)
+
+		if !defaultBlockParamRegex.MatchString(number) {
+			blockNumber, success := new(big.Int).SetString(number[2:], 16)
+			if !success {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid number",
+				})
+			}
+			log.Println(blockNumber)
+		}
+
+		var ctx = context.Background()
+		var storage string
+
+		// if key is empty then fetch storage at position
+		if key == "" {
+			err := rpcClient.CallContext(ctx, &storage, "eth_getStorageAt", address, position, number)
+			if err != nil {
+				log.Print("Error fetching storage:", err)
+			}
+			return c.JSON(storage)
+		} else {
+			final_position_hash := getMapPosition(key, position)
+
+			err := rpcClient.CallContext(ctx, &storage, "eth_getStorageAt", address, final_position_hash, number)
+			if err != nil {
+				log.Print("Error fetching storage:", err)
+			}
+			return c.JSON(storage)
+		}
+	}
+}
+
+func getStorageAtAddressAndPositionAtDecimalNumber(c *fiber.Ctx, address string, position string, number string, key string) error {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid number",
+		})
+	}
+
+	var ctx = context.Background()
+	var storage string
+
+	if key == "" {
+		err := rpcClient.CallContext(ctx, &storage, "eth_getStorageAt", address, position, hexNumber)
+		if err != nil {
+			log.Print("Error fetching storage:", err)
+		}
+		return c.JSON(storage)
+	} else {
+		final_position_hash := getMapPosition(key, position)
+
+		err := rpcClient.CallContext(ctx, &storage, "eth_getStorageAt", address, final_position_hash, hexNumber)
+		if err != nil {
+			log.Print("Error fetching storage:", err)
+		}
+		return c.JSON(storage)
+	}
+}
+
+func getMapPosition(key string, position string) string {
+	if key[:2] == "0x" {
+		key = key[2:]
+	}
+
+	key = strings.Repeat("0", 64-len(key)) + key
+	// left pad position with 0s to make it 32 bytes long
+	position = strings.Repeat("0", 64-len(position)) + position
+	// concatenate key and position
+	final_position_hex := key + position
+	fmt.Println(final_position_hex)
+	// keccak256 hash of hex encoded final_position
+	final_position, _ := hex.DecodeString(final_position_hex)
+	final_position_hash := crypto.Keccak256Hash([]byte(final_position))
+	fmt.Println(final_position_hash)
+	return final_position_hash.String()
 }
 
 func decimalToHex(number string) string {
