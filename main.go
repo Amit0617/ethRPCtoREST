@@ -60,6 +60,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// History Methods
 	app.Get("/eth/block/:identifier", getBlockByIdentifier)
 	app.Get("/eth/tx/:hash", getTransactionByHash)
 	app.Get("/eth/tx/block/:identifier/:index", getTransactionByIdentifierAndIndex)
@@ -68,15 +69,16 @@ func main() {
 	app.Get("/eth/unclecount/block/:identifier", getUncleCountByBlockIdentifier)
 	app.Get("/eth/block/txcount/:identifier", getBlockTransactionCountByIdentifier)
 
+	// Gossip Methods
 	app.Get("/eth/blockNumber", getBlockNumber)
 
+	// State Methods
 	app.Get("/eth/balance/:address", getBalanceOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/balance/:address/:identifier", getBalanceOfAddressAtBlock)
 	app.Get("/eth/storage/:address/:position", getStorageAtAddressAndPositionAtBlock) // default block parameter is "latest
 	app.Get("/eth/storage/:address/:position/:identifier", getStorageAtAddressAndPositionAtBlock)
 	app.Get("/eth/txcount/:address", getTransactionCountOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/txcount/:address/:identifier", getTransactionCountOfAddressAtBlock)
-
 	app.Get("/eth/code/:address", getCodeOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/code/:address/:identifier", getCodeOfAddressAtBlock)
 
@@ -956,7 +958,7 @@ func getStorageAtAddressAndPositionAtBlockNumber(c *fiber.Ctx, address string, p
 			}
 			return c.JSON(storage)
 		} else {
-			final_position_hash := getMapPosition(key, position)
+			final_position_hash := GetMapPosition(key, position)
 
 			err := rpcClient.CallContext(ctx, &storage, "eth_getStorageAt", address, final_position_hash, number)
 			if err != nil {
@@ -985,7 +987,7 @@ func getStorageAtAddressAndPositionAtDecimalNumber(c *fiber.Ctx, address string,
 		}
 		return c.JSON(storage)
 	} else {
-		final_position_hash := getMapPosition(key, position)
+		final_position_hash := GetMapPosition(key, position)
 
 		err := rpcClient.CallContext(ctx, &storage, "eth_getStorageAt", address, final_position_hash, hexNumber)
 		if err != nil {
@@ -995,7 +997,7 @@ func getStorageAtAddressAndPositionAtDecimalNumber(c *fiber.Ctx, address string,
 	}
 }
 
-func getMapPosition(key string, position string) string {
+func GetMapPosition(key string, position string) string {
 	if key[:2] == "0x" {
 		key = key[2:]
 	}
@@ -1005,11 +1007,11 @@ func getMapPosition(key string, position string) string {
 	position = strings.Repeat("0", 64-len(position)) + position
 	// concatenate key and position
 	final_position_hex := key + position
-	fmt.Println(final_position_hex)
+	log.Print(final_position_hex)
 	// keccak256 hash of hex encoded final_position
 	final_position, _ := hex.DecodeString(final_position_hex)
 	final_position_hash := crypto.Keccak256Hash([]byte(final_position))
-	fmt.Println(final_position_hash)
+	log.Print(final_position_hash)
 	return final_position_hash.String()
 }
 
