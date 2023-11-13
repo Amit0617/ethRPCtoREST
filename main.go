@@ -244,16 +244,19 @@ func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
 	}
 }
 
+type txExtraInfo struct {
+	BlockNumber *string         `json:"blockNumber,omitempty"`
+	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
+	From        *common.Address `json:"from,omitempty"`
+}
+
+type rpcTransaction struct {
+	tx *types.Transaction
+	txExtraInfo
+}
+
 func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters string, index string) error {
-	type txExtraInfo struct {
-		BlockNumber *string         `json:"blockNumber,omitempty"`
-		BlockHash   *common.Hash    `json:"blockHash,omitempty"`
-		From        *common.Address `json:"from,omitempty"`
-	}
-	type rpcTransaction struct {
-		tx *types.Transaction
-		txExtraInfo
-	}
+
 	var json *rpcTransaction
 
 	if decimalNumberRegex.MatchString(numberOrDefaultParameters) {

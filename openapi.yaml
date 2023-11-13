@@ -17,6 +17,8 @@ tags:
     description: Fetches historical records of every block back to genesis. This is like one large append-only file, and includes all block headers, block bodies, uncle blocks, and transaction receipts.
   - name: State Methods
     description: Methods that report the current state of all the data stored. The "state" is like one big shared piece of RAM, and includes account balances, contract data, and gas estimations.
+  - name: Gossip Methods
+    description: These methods track the head of the chain. This is how transactions make their way around the network, find their way into blocks, and how clients find out about new blocks.
 paths:
   # eth_getBlockBy{Hash|Number}
 
@@ -31,7 +33,7 @@ paths:
       parameters:
         - name: identifier
           in: path
-          description: Hash of a block (32 Bytes) or block number (integer), or the string "earliest", "latest" or "pending", see [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          description: Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string "earliest", "latest" or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
           required: true
           schema:
             oneOf:
@@ -53,24 +55,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/GetBlockBy"
               examples:
-                fullTransactionExample:
+                fullBlock:
                   value:
-                    difficulty: "0x4ea3f27bc"
-                    "extraData": "0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32"
-                    "gasLimit": "0x1388"
-                    "gasUsed": "0x0"
-                    "hash": "0xdc0818cf78f21a8e70579cb46a43643f78291264dda342ae31049421c82d21ae"
+                    "difficulty": "23629748663"
+                    "extraData": "Bitcoin is THE Blockchain."
+                    "gasLimit": "5000"
+                    "gasUsed": "0"
+                    "hash": "0x61a0b504e971b9f1b07fbc378f59ea7adda3d83bd7f8b8bc28896a1b7fc5316e"
                     "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-                    "miner": "0xbb7b8287f3f0a933474a79eae42cbca977791171"
-                    "mixHash": "0x4fffe9ae21f1c9e15207b1f472d5bbdd68c9595d461666602f2be20daf5e7843"
-                    "nonce": "0x689056015818adbe"
-                    "number": "0x1b4"
-                    "parentHash": "0xe99e022112df268087ea7eafaf4790497fd21dbeeb6bd7a1721df161a6657a54"
+                    "miner": "0x1B7047b4338ACf65bE94C1A3e8c5c9338ad7d67C"
+                    "mixHash": "0xf4e21afe17f678259b39885aebace0c45536bf64d86391375dcfef3393c9befd"
+                    "nonce": "0xa81f5a4d49d08be6"
+                    "number": "667"
+                    "parentHash": "0x41263a17a9e789798819935233d39146edce04e01c099e40dc43173b880db5fd"
                     "receiptsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
                     "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
-                    "size": "0x220"
-                    "stateRoot": "0xddc8b0234c2e0cad087c8b389aa7ef01f7d79b2570bccb77ce48648aa61c904d"
-                    "timestamp": "0x55ba467c"
+                    "size": 607
+                    "stateRoot": "0xd74882574c40359f9b336308dca7b7de0a7964bb4362bb4485e051a08e441cac"
+                    "timestamp": "1438271527"
                     "totalDifficulty": "0x78ed983323d"
                     "transactions": []
                     "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"
@@ -82,7 +84,7 @@ paths:
 
   # eth_getTransactionByHash
 
-  /eth/transaction/{hash}:
+  /eth/tx/{hash}:
     parameters:
       - name: hash
         in: path
@@ -101,6 +103,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TransactionResponse"
+              examples:
+                transaction:
+                  value:
+                    "type": "0x0"
+                    "chainId": "0x1"
+                    "nonce": "0x15"
+                    "to": "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
+                    "gas": "0xc350"
+                    "gasPrice": "0x4a817c800"
+                    "maxPriorityFeePerGas": null
+                    "maxFeePerGas": null
+                    "value": "0xf3dbb76162000"
+                    "input": "0x68656c6c6f21"
+                    "v": "0x25"
+                    "r": "0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea"
+                    "s": "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+                    "hash": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
+
         "202":
           description: Transaction is not yet available (might be queued for execution, not mined yet)
           content:
@@ -110,7 +130,7 @@ paths:
 
   # eth_getTransactionByBlock{Hash|Number}andIndex
 
-  /eth/transaction/block/{identifier}/{index}:
+  /eth/tx/block/{identifier}/{index}:
     get:
       summary: Returns information about a transaction by block hash and transaction index position or by block number and transaction index position.
       tags:
@@ -118,7 +138,7 @@ paths:
       parameters:
         - name: identifier
           in: path
-          description: Hash of a block (32 Bytes) or block number (integer) or "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          description: Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
           required: true
           schema:
             oneOf:
@@ -230,56 +250,73 @@ components:
       type: object
       properties:
         number:
-          $ref: "#/components/schemas/uint"
-          description: The block number. Null when its a pending block.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: The block number. Null when its a pending block.
         hash:
-          $ref: "#/components/schemas/hash32"
-          description: Hash of the block. Null when its a pending block.
+          allOf:
+            - $ref: "#/components/schemas/hash32"
+            - description: Hash of the block. Null when its a pending block.
         parentHash:
-          $ref: "#/components/schemas/hash32"
-          description: Hash of the parent block.
+          allOf:
+            - $ref: "#/components/schemas/hash32"
+            - description: Hash of the parent block.
         nonce:
-          $ref: "#/components/schemas/uint"
-          description: Hash of the generated proof-of-work. Null when its a pending block.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Hash of the generated proof-of-work. Null when its a pending block.
         sha3Uncles:
-          $ref: "#/components/schemas/hash32"
-          description: SHA3 of the uncles data in the block.
+          allOf:
+            - $ref: "#/components/schemas/hash32"
+            - description: SHA3 of the uncles data in the block.
         logsBloom:
-          $ref: "#/components/schemas/bytes256"
-          description: The bloom filter for the logs of the block. Null when its a pending block.
+          allOf:
+            - $ref: "#/components/schemas/bytes256"
+            - description: The bloom filter for the logs of the block. Null when its a pending block.
         transactionsRoot:
-          $ref: "#/components/schemas/hash32"
-          description: The root of the transaction trie of the block.
+          allOf:
+            - $ref: "#/components/schemas/hash32"
+            - description: The root of the transaction trie of the block.
         stateRoot:
-          $ref: "#/components/schemas/hash32"
-          description: The root of the final state trie of the block.
+          allOf:
+            - $ref: "#/components/schemas/hash32"
+            - description: The root of the final state trie of the block.
         receiptsRoot:
-          $ref: "#/components/schemas/hash32"
-          description: The root of the receipts trie of the block.
+          allOf:
+            - $ref: "#/components/schemas/hash32"
+            - description: The root of the receipts trie of the block.
         miner:
-          $ref: "#/components/schemas/address"
-          description: The address of the beneficiary to whom the mining rewards were given.
+          allOf:
+            - $ref: "#/components/schemas/address"
+            - description: The address of the beneficiary to whom the mining rewards were given.
         difficulty:
-          $ref: "#/components/schemas/bytes"
-          description: Integer of the difficulty for this block.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Integer of the difficulty for this block.
         totalDifficulty:
-          $ref: "#/components/schemas/uint"
-          description: Integer of the total difficulty of the chain until this block.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Integer of the total difficulty of the chain until this block.
         extraData:
-          $ref: "#/components/schemas/bytes"
-          description: The "extra data" field of this block.
+          allOf:
+            - $ref: "#/components/schemas/bytes"
+            - description: The "extra data" field of this block.
         size:
-          $ref: "#/components/schemas/uint"
-          description: Integer the size of this block in bytes.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Integer the size of this block in bytes.
         gasLimit:
-          $ref: "#/components/schemas/uint"
-          description: The maximum gas allowed in this block.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: The maximum gas allowed in this block.
         gasUsed:
-          $ref: "#/components/schemas/uint"
-          description: The total used gas by all transactions in this block.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: The total used gas by all transactions in this block.
         timestamp:
-          $ref: "#/components/schemas/uint"
-          description: The Unix timestamp for when the block was collated.
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: The Unix timestamp for when the block was collated.
         transactions:
           type: array
           description: Array of transaction objects or 32 Bytes transaction hashes depending on the last given parameter.
@@ -414,9 +451,9 @@ components:
           $ref: "#/components/schemas/uint"
         to:
           title: to address
+          nullable: true
           oneOf:
             - title: Contract Creation (null)
-              type: "null"
             - title: Address
               $ref: "#/components/schemas/address"
         gas:
@@ -460,9 +497,9 @@ components:
           $ref: "#/components/schemas/uint"
         to:
           title: to address
+          nullable: true
           oneOf:
             - title: Contract Creation (null)
-              type: "null"
             - title: Address
               $ref: "#/components/schemas/address"
         gas:
@@ -647,10 +684,8 @@ components:
           description: Address of the sender.
           example: "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
         to:
-          type:
-            oneOf:
-              - $ref: "#/components/schemas/address"
-              - type: "null"
+          nullable: true
+          $ref: "#/components/schemas/address"
           description: Address of the receiver. Null when it's a contract creation transaction.
           example: "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
         cumulativeGasUsed:
@@ -666,10 +701,8 @@ components:
           description: The amount of gas used by this specific transaction alone.
           example: "0x4dc" # 1244
         contractAddress:
-          type:
-            oneOf:
-              - $ref: "#/components/schemas/address"
-              - type: "null"
+          nullable: true
+          $ref: "#/components/schemas/address"
           description: The contract address created, if the transaction was a contract creation, otherwise null.
           example: "0xb60e8dd61c5d32be8058bb8eb970870f07233155"
         logs:
