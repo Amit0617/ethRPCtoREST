@@ -14,6 +14,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -70,6 +71,7 @@ func main() {
 
 	// Gossip Methods
 	app.Get("/eth/blockNumber", getBlockNumber)
+	app.Post("/eth/tx/:data", sendRawTransaction)
 
 	// State Methods
 	app.Get("/eth/balance/:address", getBalanceOfAddressAtBlock) // default block parameter is "latest"
@@ -852,11 +854,11 @@ func getStorageAtAddressAndPositionAtBlock(c *fiber.Ctx) error {
 		})
 	}
 
-	// Check if position is a valid position
-	if !decimalNumberRegex.MatchString(position) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid position",
-		})
+	// convert position to hex from decimal if it is decimal
+	if len(position) >= 2 && position[:2] == "0x" {
+		// position is already in hex
+	} else {
+		position = decimalToHex(position)
 	}
 
 	// Check if identifier is a block number
@@ -891,7 +893,7 @@ func getStorageAtAddressAndPositionAtBlockNumber(c *fiber.Ctx, address string, p
 		}
 
 		var ctx = context.Background()
-		var storage string
+		var storage hexutil.Bytes
 
 		// if key is empty then fetch storage at position
 		if key == "" {
@@ -938,6 +940,19 @@ func getStorageAtAddressAndPositionAtDecimalNumber(c *fiber.Ctx, address string,
 		}
 		return c.JSON(storage)
 	}
+}
+
+func sendRawTransaction(c *fiber.Ctx) error {
+	data := c.Params("data")
+	log.Print(data)
+
+	var transactionHash common.Hash
+	var ctx = context.Background()
+	err := rpcClient.CallContext(ctx, &transactionHash, "eth_sendRawTransaction", data)
+	if err != nil {
+		log.Print("Error sending transaction:", err)
+	}
+	return c.JSON(transactionHash)
 }
 
 func GetMapPosition(key string, position string) string {
