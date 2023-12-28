@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 var RPC_URL string
@@ -40,8 +41,35 @@ var blockNumberRegex = regexp.MustCompile(`^0x([1-9a-f]+[0-9a-f]*|0)$`)
 var decimalNumberRegex = regexp.MustCompile(`^([1-9][0-9]*|0)$`)
 var defaultBlockParamRegex = regexp.MustCompile(`^(earliest|latest|pending|safe|finalized)$`)
 
+// request body for sending transactions
+type RequestBody struct {
+	From     string `json:"from,required" xml:"from" form:"from"`
+	To       string `json:"to" xml:"to" form:"to" validate:"omitempty"`
+	Gas      string `json:"gas" xml:"gas" form:"gas"`
+	GasPrice string `json:"gasPrice" xml:"gasPrice" form:"gasPrice"`
+	Value    string `json:"value" xml:"value" form:"value"`
+	Nonce    string `json:"nonce"`
+	Data     string `json:"data" xml:"data" form:"data" validate:"required"`
+}
+
+// request body for eth_call of following type
+
+// 	From     string `json:"from" xml:"from" form:"from"`
+// 	To       string `json:"to" xml:"to" form:"to" validate:"required"`
+// 	Gas      string `json:"gas" xml:"gas" form:"gas"`
+// 	GasPrice string `json:"gasPrice" xml:"gasPrice" form:"gasPrice"`
+// 	Value    string `json:"value" xml:"value" form:"value"`
+// 	Data     string `json:"data" xml:"data" form:"data" validate:"required"`
+
+type ModifiedRequestBody struct {
+	RequestBody
+	From string `json:"from" xml:"from" form:"from" validate:"omitempty,omitnil"`
+	To   string `json:"to" xml:"to" form:"to" validate:"required"`
+}
+
 func main() {
 	app := fiber.New()
+	app.Use(recover.New())
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error loading environment variables file")
@@ -72,6 +100,7 @@ func main() {
 	// Gossip Methods
 	app.Get("/eth/blockNumber", getBlockNumber)
 	app.Post("/eth/tx/:data", sendRawTransaction)
+	app.Post("/eth/tx", sendTransaction)
 
 	// State Methods
 	app.Get("/eth/balance/:address", getBalanceOfAddressAtBlock) // default block parameter is "latest"
@@ -82,6 +111,8 @@ func main() {
 	app.Get("/eth/txcount/:address/:identifier", getTransactionCountOfAddressAtBlock)
 	app.Get("/eth/code/:address", getCodeOfAddressAtBlock) // default block parameter is "latest"
 	app.Get("/eth/code/:address/:identifier", getCodeOfAddressAtBlock)
+	app.Post("/eth/call", callContractAtBlock) // default block parameter is "latest"
+	app.Post("/eth/call/:identifier", callContractAtBlock)
 
 	// TODO:(very low priority) also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
@@ -309,6 +340,7 @@ func getTransactionByBlockHashAndIndex(c *fiber.Ctx, hash string, index uint) er
 	return c.JSON(block)
 }
 
+// getTransactionReceiptByHash retrieves transaction receipt by hash and returns it as JSON.
 func getTransactionReceiptByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	// Check if hash is a valid transaction hash
@@ -611,6 +643,97 @@ func getBlockNumber(c *fiber.Ctx) error {
 		log.Print("Error fetching block number:", err)
 	}
 	return c.JSON(StringifyCount(blockNumber))
+}
+
+// sendRawTransaction sends a signed transaction to the network and returns the transaction hash as JSON.
+func sendRawTransaction(c *fiber.Ctx) error {
+	data := c.Params("data")
+	log.Print(data)
+
+	var transactionHash common.Hash
+	var ctx = context.Background()
+	err := rpcClient.CallContext(ctx, &transactionHash, "eth_sendRawTransaction", data)
+	if err != nil {
+		log.Print("Error sending transaction:", err)
+	}
+	return c.JSON(transactionHash)
+}
+
+// sendTransaction sends a transaction to the network, and signs it using the account specified in `from` and returns the transaction hash as JSON.
+func sendTransaction(c *fiber.Ctx) error {
+
+	// get the request body
+	obj := new(RequestBody)
+
+	if err := c.BodyParser(obj); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	log.Print(obj)
+
+	// send only non empty values in the request body from obj
+	objMap := make(map[string]string)
+	objMap["from"] = obj.From
+	// check if to is empty
+	if obj.To != "" {
+		objMap["to"] = obj.To
+	}
+	// check if gas is empty
+	if obj.Gas != "" {
+		objMap["gas"] = obj.Gas
+	}
+	// check if gasPrice is empty
+	if obj.GasPrice != "" {
+		objMap["gasPrice"] = obj.GasPrice
+	}
+	// check if value is empty
+	if obj.Value != "" {
+		objMap["value"] = obj.Value
+	}
+	// check if nonce is empty
+	if obj.Nonce != "" {
+		objMap["nonce"] = obj.Nonce
+	}
+	objMap["data"] = obj.Data
+
+	// Check if from is a valid address
+	if !common.IsHexAddress(objMap["from"]) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid address",
+		})
+	}
+
+	// Check if to is a valid address if it is provided
+	// check if there is a to key in the map
+	if to, ok := objMap["to"]; ok {
+		if !common.IsHexAddress(to) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid address",
+			})
+		}
+	}
+
+	// convert gas, gasPrice, value and nonce to hex from decimal
+	// gas = decimalToHex(gas)
+	// gasPrice = decimalToHex(gasPrice)
+	// value = decimalToHex(value)
+	// nonce = decimalToHex(nonce)
+
+	// // reconstruct the request body
+	// obj.Gas = gas
+	// obj.GasPrice = gasPrice
+	// obj.Value = value
+	// obj.Nonce = nonce
+
+	var ctx = context.Background()
+	var transactionHash common.Hash
+	err := rpcClient.CallContext(ctx, &transactionHash, "eth_sendTransaction", objMap)
+	if err != nil {
+		log.Print("Error sending transaction:", err)
+	}
+	return c.JSON(transactionHash)
 }
 
 // getBalanceOfAddressAtBlock retrieves balance of address at block number and returns it in Wei.
@@ -942,17 +1065,172 @@ func getStorageAtAddressAndPositionAtDecimalNumber(c *fiber.Ctx, address string,
 	}
 }
 
-func sendRawTransaction(c *fiber.Ctx) error {
-	data := c.Params("data")
-	log.Print(data)
+func callContractAtBlock(c *fiber.Ctx) error {
+	numberOrDefaultParameters := c.Params("identifier", "latest")
+	log.Print(numberOrDefaultParameters)
 
-	var transactionHash common.Hash
-	var ctx = context.Background()
-	err := rpcClient.CallContext(ctx, &transactionHash, "eth_sendRawTransaction", data)
-	if err != nil {
-		log.Print("Error sending transaction:", err)
+	if decimalNumberRegex.MatchString(numberOrDefaultParameters) {
+		log.Println("Decimal number")
+		contractResponse := callContractAtDecimalNumber(c, numberOrDefaultParameters)
+		return contractResponse
+	} else {
+		number := numberOrDefaultParameters
+		log.Println(number)
+
+		if !defaultBlockParamRegex.MatchString(number) {
+			blockNumber, success := new(big.Int).SetString(number[2:], 16)
+			if !success {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid number",
+				})
+			}
+			log.Println(blockNumber)
+		}
+
+		// get the request body
+		obj := new(ModifiedRequestBody)
+
+		if err := c.BodyParser(obj); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid request body",
+			})
+		}
+
+		log.Print(obj)
+
+		// send only non empty values in the request body from obj
+		objMap := make(map[string]string)
+		// if obj.From != "" {
+		// 	objMap["from"] = obj.From
+		// }
+		objMap["to"] = obj.To
+		// check if gas is empty
+		if obj.Gas != "" {
+			objMap["gas"] = obj.Gas
+		}
+		// check if gasPrice is empty
+		if obj.GasPrice != "" {
+			objMap["gasPrice"] = obj.GasPrice
+		}
+		// check if value is empty
+		if obj.Value != "" {
+			objMap["value"] = obj.Value
+		}
+		if obj.Data != "" {
+			objMap["data"] = obj.Data
+		}
+		log.Println(objMap)
+		// Check if from (optional field) is a valid address
+		if from, ok := objMap["from"]; ok {
+			if !common.IsHexAddress(from) {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid address",
+				})
+			}
+		}
+
+		// Check if to is a valid address
+		if !common.IsHexAddress(objMap["to"]) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid address",
+			})
+		}
+
+		// convert gas, gasPrice, value and nonce to hex from decimal
+		// gas = decimalToHex(gas)
+		// gasPrice = decimal
+		// value = decimalToHex(value)
+		// nonce = decimalToHex(nonce)
+
+		// // reconstruct the request body
+		// obj.Gas = gas
+		// obj.GasPrice = gasPrice
+		// obj.Value = value
+		// obj.Nonce = nonce
+
+		var ctx = context.Background()
+		var result string
+		err := rpcClient.CallContext(ctx, &result, "eth_call", objMap, number)
+		if err != nil {
+			log.Print("Error calling contract:", err)
+		}
+		return c.JSON(result)
 	}
-	return c.JSON(transactionHash)
+}
+
+func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
+	hexNumber := decimalToHex(number)
+	if hexNumber == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid number"})
+	}
+
+	// get the request body
+	obj := new(ModifiedRequestBody)
+
+	if err := c.BodyParser(obj); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	log.Print(obj)
+
+	// send only non empty values in the request body from obj
+	objMap := make(map[string]string)
+	if obj.From != "" {
+		objMap["from"] = obj.From
+	}
+	objMap["to"] = obj.To
+	// check if gas is empty
+	if obj.Gas != "" {
+		objMap["gas"] = obj.Gas
+	}
+	// check if gasPrice is empty
+	if obj.GasPrice != "" {
+		objMap["gasPrice"] = obj.GasPrice
+	}
+	// check if value is empty
+	if obj.Value != "" {
+		objMap["value"] = obj.Value
+	}
+	if obj.Data != "" {
+		objMap["data"] = obj.Data
+	}
+	// Check if from (optional field) is a valid address
+	if from, ok := objMap["from"]; ok {
+		if !common.IsHexAddress(from) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid address",
+			})
+		}
+	}
+
+	// Check if to is a valid address
+	if !common.IsHexAddress(objMap["to"]) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid address",
+		})
+	}
+
+	// convert gas, gasPrice, value and nonce to hex from decimal
+	// gas = decimalToHex(gas)
+	// gasPrice = decimal
+	// value = decimalToHex(value)
+	// nonce = decimalToHex(nonce)
+
+	// // reconstruct the request body
+	// obj.Gas = gas
+	// obj.GasPrice = gasPrice
+	// obj.Value = value
+	// obj.Nonce = nonce
+
+	var ctx = context.Background()
+	var result string
+	err := rpcClient.CallContext(ctx, &result, "eth_call", objMap, hexNumber)
+	if err != nil {
+		log.Print("Error calling contract:", err)
+	}
+	return c.JSON(result)
 }
 
 func GetMapPosition(key string, position string) string {
