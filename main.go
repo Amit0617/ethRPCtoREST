@@ -13,6 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -41,30 +42,22 @@ var blockNumberRegex = regexp.MustCompile(`^0x([1-9a-f]+[0-9a-f]*|0)$`)
 var decimalNumberRegex = regexp.MustCompile(`^([1-9][0-9]*|0)$`)
 var defaultBlockParamRegex = regexp.MustCompile(`^(earliest|latest|pending|safe|finalized)$`)
 
-// request body for sending transactions
+// request body for eth_call
 type RequestBody struct {
-	From     string `json:"from,required" xml:"from" form:"from"`
-	To       string `json:"to" xml:"to" form:"to" validate:"omitempty"`
-	Gas      string `json:"gas" xml:"gas" form:"gas"`
-	GasPrice string `json:"gasPrice" xml:"gasPrice" form:"gasPrice"`
-	Value    string `json:"value" xml:"value" form:"value"`
-	Nonce    string `json:"nonce"`
-	Data     string `json:"data" xml:"data" form:"data" validate:"required"`
+	From     common.Address  `json:"from,omitempty" xml:"from" form:"from"`
+	To       *common.Address `json:"to" xml:"to" form:"to" validate:"required"`
+	Gas      string          `json:"gas,omitempty" xml:"gas" form:"gas"`
+	GasPrice string          `json:"gasPrice,omitempty" xml:"gasPrice" form:"gasPrice"`
+	Value    string          `json:"value,omitempty" xml:"value" form:"value"`
+	Data     string          `json:"data" xml:"data" form:"data" validate:"required"`
 }
 
-// request body for eth_call of following type
-
-// 	From     string `json:"from" xml:"from" form:"from"`
-// 	To       string `json:"to" xml:"to" form:"to" validate:"required"`
-// 	Gas      string `json:"gas" xml:"gas" form:"gas"`
-// 	GasPrice string `json:"gasPrice" xml:"gasPrice" form:"gasPrice"`
-// 	Value    string `json:"value" xml:"value" form:"value"`
-// 	Data     string `json:"data" xml:"data" form:"data" validate:"required"`
-
+// request body for sending transactions
 type ModifiedRequestBody struct {
 	RequestBody
-	From string `json:"from" xml:"from" form:"from" validate:"omitempty,omitnil"`
-	To   string `json:"to" xml:"to" form:"to" validate:"required"`
+	From  *common.Address `json:"from" xml:"from" form:"from" validate:"required"`
+	To    *common.Address `json:"to,omitempty" xml:"to" form:"to"`
+	Nonce string          `json:"nonce,omitempty"`
 }
 
 func main() {
@@ -663,7 +656,7 @@ func sendRawTransaction(c *fiber.Ctx) error {
 func sendTransaction(c *fiber.Ctx) error {
 
 	// get the request body
-	obj := new(RequestBody)
+	obj := new(ModifiedRequestBody)
 
 	if err := c.BodyParser(obj); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -674,10 +667,10 @@ func sendTransaction(c *fiber.Ctx) error {
 	log.Print(obj)
 
 	// send only non empty values in the request body from obj
-	objMap := make(map[string]string)
+	objMap := make(map[string]interface{})
 	objMap["from"] = obj.From
 	// check if to is empty
-	if obj.To != "" {
+	if obj.To != nil {
 		objMap["to"] = obj.To
 	}
 	// check if gas is empty
@@ -697,23 +690,6 @@ func sendTransaction(c *fiber.Ctx) error {
 		objMap["nonce"] = obj.Nonce
 	}
 	objMap["data"] = obj.Data
-
-	// Check if from is a valid address
-	if !common.IsHexAddress(objMap["from"]) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid address",
-		})
-	}
-
-	// Check if to is a valid address if it is provided
-	// check if there is a to key in the map
-	if to, ok := objMap["to"]; ok {
-		if !common.IsHexAddress(to) {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid address",
-			})
-		}
-	}
 
 	// convert gas, gasPrice, value and nonce to hex from decimal
 	// gas = decimalToHex(gas)
@@ -1087,54 +1063,41 @@ func callContractAtBlock(c *fiber.Ctx) error {
 			log.Println(blockNumber)
 		}
 
-		// get the request body
-		obj := new(ModifiedRequestBody)
+		// request body for eth_call
+		obj := new(ethereum.CallMsg)
+		obj.Data = []byte(`double(int256)`)
 
+		// bind request body to obj
 		if err := c.BodyParser(obj); err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid request body",
+				"error": err.Error(),
 			})
 		}
 
-		log.Print(obj)
+		log.Println(obj)
 
 		// send only non empty values in the request body from obj
-		objMap := make(map[string]string)
-		// if obj.From != "" {
-		// 	objMap["from"] = obj.From
-		// }
-		objMap["to"] = obj.To
+		objMap := map[string]interface{}{
+			"from": obj.From,
+			"to":   obj.To,
+		}
+
 		// check if gas is empty
-		if obj.Gas != "" {
+		if obj.Gas != 0 {
 			objMap["gas"] = obj.Gas
 		}
 		// check if gasPrice is empty
-		if obj.GasPrice != "" {
+		if obj.GasPrice != nil {
 			objMap["gasPrice"] = obj.GasPrice
 		}
 		// check if value is empty
-		if obj.Value != "" {
+		if obj.Value != nil {
 			objMap["value"] = obj.Value
 		}
-		if obj.Data != "" {
-			objMap["data"] = obj.Data
+		if len(obj.Data) > 0 {
+			objMap["data"] = hexutil.Bytes(obj.Data)
 		}
 		log.Println(objMap)
-		// Check if from (optional field) is a valid address
-		if from, ok := objMap["from"]; ok {
-			if !common.IsHexAddress(from) {
-				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": "Invalid address",
-				})
-			}
-		}
-
-		// Check if to is a valid address
-		if !common.IsHexAddress(objMap["to"]) {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid address",
-			})
-		}
 
 		// convert gas, gasPrice, value and nonce to hex from decimal
 		// gas = decimalToHex(gas)
@@ -1165,7 +1128,7 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 	}
 
 	// get the request body
-	obj := new(ModifiedRequestBody)
+	obj := new(RequestBody)
 
 	if err := c.BodyParser(obj); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -1176,11 +1139,10 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 	log.Print(obj)
 
 	// send only non empty values in the request body from obj
-	objMap := make(map[string]string)
-	if obj.From != "" {
-		objMap["from"] = obj.From
+	objMap := map[string]interface{}{
+		"from": obj.From,
+		"to":   obj.To,
 	}
-	objMap["to"] = obj.To
 	// check if gas is empty
 	if obj.Gas != "" {
 		objMap["gas"] = obj.Gas
@@ -1195,21 +1157,6 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 	}
 	if obj.Data != "" {
 		objMap["data"] = obj.Data
-	}
-	// Check if from (optional field) is a valid address
-	if from, ok := objMap["from"]; ok {
-		if !common.IsHexAddress(from) {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid address",
-			})
-		}
-	}
-
-	// Check if to is a valid address
-	if !common.IsHexAddress(objMap["to"]) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid address",
-		})
 	}
 
 	// convert gas, gasPrice, value and nonce to hex from decimal
