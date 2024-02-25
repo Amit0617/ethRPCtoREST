@@ -21,10 +21,19 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
+	_ "github.com/amit0617/ethRPCtoREST/docs"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/swagger"
 )
 
+//	@title 			ethRPCtoREST API
+//	@version		1.0
+//	@description	This server provides RESTful interface to the Ethereum JSON-RPC API.
+
+// @license		MIT
+// @host			localhost:3000
+// @BasePath		/eth
 var RPC_URL string
 var client *ethclient.Client
 var rpcClient *rpc.Client
@@ -63,6 +72,9 @@ type ModifiedRequestBody struct {
 func main() {
 	app := fiber.New()
 	app.Use(recover.New())
+
+	app.Get("/docs/*", swagger.HandlerDefault)
+
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatalf("Error loading environment variables file")
