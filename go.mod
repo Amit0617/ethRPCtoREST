@@ -1,4 +1,4 @@
-module wrapper
+module ethRPCtoREST
 
 go 1.21.0
 
