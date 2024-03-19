@@ -21,19 +21,11 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	_ "github.com/amit0617/ethRPCtoREST/docs"
+	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/swagger"
 )
 
-//	@title 			ethRPCtoREST API
-//	@version		1.0
-//	@description	This server provides RESTful interface to the Ethereum JSON-RPC API.
-
-// @license		MIT
-// @host			localhost:3000
-// @BasePath		/eth
 var RPC_URL string
 var client *ethclient.Client
 var rpcClient *rpc.Client
@@ -73,7 +65,13 @@ func main() {
 	app := fiber.New()
 	app.Use(recover.New())
 
-	app.Get("/docs/*", swagger.HandlerDefault)
+	cfg := swagger.Config{
+		BasePath: "/",
+		FilePath: "./swagger.json",
+		Path:     "docs",
+		Title:    "Ethereum RPC API",
+	}
+	app.Use(swagger.New(cfg))
 
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -178,7 +176,7 @@ func getBlockByNumber(c *fiber.Ctx, numberOrDefaultParameters string, includeTx 
 			blockNumber, success := new(big.Int).SetString(number[2:], 16)
 			if !success {
 				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": "Invalid number",
+					"error": "Invalid block number",
 				})
 			}
 			log.Println(blockNumber)
@@ -199,7 +197,7 @@ func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error 
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid block number",
 		})
 	}
 

@@ -1,9 +1,0 @@
-basePath: /eth
-host: localhost:3000
-info:
-  contact: {}
-  description: This server provides RESTful interface to the Ethereum JSON-RPC API.
-  title: ethRPCtoREST API
-  version: "1.0"
-paths: {}
-swagger: "2.0"

@@ -1,17 +1,14 @@
 openapi: 3.0.0
 servers:
   # Added by API Auto Mocking Plugin
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/AMITMISHRA0617/EthereumAPIs/1.0.0
+    url: /
 info:
   description: This is a simple API
   version: "1.0.0"
   title: ETHEREUM REST API
-  contact:
-    email: you@your-company.com
   license:
-    name: Apache 2.0
-    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+    name: MIT
+    url: "https://github.com/Amit0617/ethRPCtoREST/blob/main/LICENSE"
 tags:
   - name: History Methods
     description: Fetches historical records of every block back to genesis. This is like one large append-only file, and includes all block headers, block bodies, uncle blocks, and transaction receipts.
