@@ -1114,25 +1114,10 @@ func callContractAtBlock(c *fiber.Ctx) error {
 
 		for i := 1; i < len(data); i++ {
 			switch argumentsTypes[i-1] {
-			case "int256":
+			case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
 				// convert argument to hex
 				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
-			case "int":
-				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
-			case "int8":
-				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
-			case "int16":
-				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
-			case "int32":
-				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
-			case "int64":
-				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
-			case "uint8":
-			case "uint16":
-			case "uint32":
-			case "uint64":
-			case "uint256":
-			case "uint":
+
 			default:
 				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 					"error": "Invalid argument type or argument type not supported",
