@@ -67,7 +67,7 @@ func main() {
 
 	cfg := swagger.Config{
 		BasePath: "/",
-		FilePath: "./swagger.json",
+		FilePath: "./openapi.json",
 		Path:     "docs",
 		Title:    "Ethereum RPC API",
 	}
