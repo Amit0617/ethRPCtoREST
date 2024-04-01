@@ -13,7 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/ethereum/go-ethereum"
+	// "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -56,7 +56,7 @@ type RequestBody struct {
 // request body for sending transactions
 type ModifiedRequestBody struct {
 	RequestBody
-	From  *common.Address `json:"from" xml:"from" form:"from" validate:"required"`
+	From  common.Address  `json:"from" xml:"from" form:"from" validate:"required"`
 	To    *common.Address `json:"to,omitempty" xml:"to" form:"to"`
 	Nonce string          `json:"nonce,omitempty"`
 }
@@ -67,7 +67,7 @@ func main() {
 
 	cfg := swagger.Config{
 		BasePath: "/",
-		FilePath: "./swagger.json",
+		FilePath: "./openapi.json",
 		Path:     "docs",
 		Title:    "Ethereum RPC API",
 	}
@@ -707,7 +707,7 @@ func sendTransaction(c *fiber.Ctx) error {
 	// value = decimalToHex(value)
 	// nonce = decimalToHex(nonce)
 
-	// // reconstruct the request body
+	// reconstruct the request body
 	// obj.Gas = gas
 	// obj.GasPrice = gasPrice
 	// obj.Value = value
@@ -1074,8 +1074,7 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		}
 
 		// request body for eth_call
-		obj := new(ethereum.CallMsg)
-		obj.Data = []byte(`double(int256)`)
+		obj := new(RequestBody)
 
 		// bind request body to obj
 		if err := c.BodyParser(obj); err != nil {
@@ -1084,7 +1083,48 @@ func callContractAtBlock(c *fiber.Ctx) error {
 			})
 		}
 
-		log.Println(obj)
+		// split string at comma
+		data := strings.Split(obj.Data, ",")
+
+		// first element is the function signature, and the rest are arguments
+		// keccak hash of function signature
+		sig := crypto.Keccak256Hash([]byte(data[0])).Bytes()[0:4]
+		// get the number of arguments from function signature
+		// take out substring between ( and )
+		argumentsTypes := strings.Split(data[0][strings.Index(data[0], "(")+1:strings.Index(data[0], ")")], ",")
+		log.Println(argumentsTypes)
+
+		// check if number of arguments is equal to the number of arguments in the function signature
+		if len(argumentsTypes) != len(data)-1 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid number of arguments",
+			})
+		}
+
+		// trim whitespace for both data and argumentsTypes
+		for i := 0; i < len(data); i++ {
+			data[i] = strings.TrimSpace(data[i])
+			if i < len(argumentsTypes) {
+				argumentsTypes[i] = strings.TrimSpace(argumentsTypes[i])
+			}
+		}
+
+		// use switch case to determine the type of each argument and encode it accordingly
+		var args string
+
+		for i := 1; i < len(data); i++ {
+			switch argumentsTypes[i-1] {
+			case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
+				// convert argument to hex
+				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
+
+			default:
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": "Invalid argument type or argument type not supported",
+				})
+			}
+		}
+		obj.Data = hexutil.Encode(sig) + args
 
 		// send only non empty values in the request body from obj
 		objMap := map[string]interface{}{
@@ -1093,19 +1133,19 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		}
 
 		// check if gas is empty
-		if obj.Gas != 0 {
+		if obj.Gas != "" {
 			objMap["gas"] = obj.Gas
 		}
 		// check if gasPrice is empty
-		if obj.GasPrice != nil {
+		if obj.GasPrice != "" {
 			objMap["gasPrice"] = obj.GasPrice
 		}
 		// check if value is empty
-		if obj.Value != nil {
+		if obj.Value != "" {
 			objMap["value"] = obj.Value
 		}
 		if len(obj.Data) > 0 {
-			objMap["data"] = hexutil.Bytes(obj.Data)
+			objMap["data"] = obj.Data
 		}
 		log.Println(objMap)
 
@@ -1212,7 +1252,7 @@ func decimalToHex(number string) string {
 	// decimal to hexadecimal conversion
 	intNumber, success := new(big.Int).SetString(number, 10)
 	if !success {
-		return ""
+		return "failed to conver string to big.Int"
 	}
 
 	hexNumber := fmt.Sprintf("0x%x", intNumber)
