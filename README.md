@@ -6,13 +6,13 @@ Still clueless? Explainer for where does it fits the equation - https://amit0617
 
 ## API SPEC [Work in progress, lagging a bit]
 
-`openapi.yaml` consists of OPEN API specification for the REST API. It can also be found at https://app.swaggerhub.com/apis-docs/AMITMISHRA0617/EthereumAPIs/1.0.0#
+`openapi.yaml` consists of OPEN API specification for the REST API.
 
 ### How to use it?
 
 1. Download `ethRPCtoREST` binary, make it executable using `chmod +x ./ethRPCtoREST`.
 2. Execute it `./ethRPCtoREST $RPC_URL`.
-3. And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec)
+3. And you are done! Open localhost:3000 and visit URL endpoints as mentioned in [API SPEC](#api-spec) which is available at `localhost:3000/docs` endpoint.
 
 ### How to start contributing?
 
