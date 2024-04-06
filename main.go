@@ -196,7 +196,7 @@ func getBlockByDecimalNumber(c *fiber.Ctx, number string, includeTx bool) error 
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid block number",
+			"error": "Invalid block number " + number,
 		})
 	}
 
@@ -254,7 +254,7 @@ func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
 		index = decimalToHex(index)
 		if index == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid index",
+				"error": "Invalid index " + index,
 			})
 		}
 	} else {
@@ -299,7 +299,7 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 		hexNumber := decimalToHex(numberOrDefaultParameters)
 		if hexNumber == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid number",
+				"error": "Invalid number " + numberOrDefaultParameters,
 			})
 		}
 
@@ -379,7 +379,7 @@ func getUncleByBlockIdentifierAndIndex(c *fiber.Ctx) error {
 		index = decimalToHex(index)
 		if index == "" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid index",
+				"error": "Invalid index " + index,
 			})
 		}
 	} else {
@@ -438,7 +438,7 @@ func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) 
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -534,7 +534,7 @@ func getUncleCountByDecimalNumber(c *fiber.Ctx, number string) error {
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -621,7 +621,7 @@ func getBlockTransactionCountByDecimalNumber(c *fiber.Ctx, number string) error 
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -782,7 +782,7 @@ func getBalanceOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number str
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -857,7 +857,7 @@ func getTransactionCountOfAddressAtDecimalNumber(c *fiber.Ctx, address string, n
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -930,7 +930,7 @@ func getCodeOfAddressAtDecimalNumber(c *fiber.Ctx, address string, number string
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -967,6 +967,11 @@ func getStorageAtAddressAndPositionAtBlock(c *fiber.Ctx) error {
 		// position is already in hex
 	} else {
 		position = decimalToHex(position)
+		if position == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid position " + position,
+			})
+		}
 	}
 
 	// Check if identifier is a block number
@@ -1026,7 +1031,7 @@ func getStorageAtAddressAndPositionAtDecimalNumber(c *fiber.Ctx, address string,
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid number",
+			"error": "Invalid number " + number,
 		})
 	}
 
@@ -1114,14 +1119,20 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		for i := 1; i < len(data); i++ {
 			switch argumentsTypes[i-1] {
 			case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
+				hexNumber := decimalToHex(data[i])
+				if hexNumber == "" {
+					return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+						"error": "Invalid number passed as argument " + data[i] + ". It should be an integer",
+					})
+				}
 				// convert argument to hex
-				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
+				args += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
 
 			case "address":
 				// check if address is a valid address
 				if !common.IsHexAddress(data[i]) {
 					return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-						"error": "Invalid address",
+						"error": "Invalid address " + data[i],
 					})
 				}
 				args += strings.Repeat("0", 64-len(data[i][2:])) + data[i][2:]
@@ -1181,7 +1192,7 @@ func callContractAtBlock(c *fiber.Ctx) error {
 func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 	hexNumber := decimalToHex(number)
 	if hexNumber == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid number"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid number " + number})
 	}
 
 	// get the request body
@@ -1259,7 +1270,7 @@ func decimalToHex(number string) string {
 	// decimal to hexadecimal conversion
 	intNumber, success := new(big.Int).SetString(number, 10)
 	if !success {
-		return "failed to convert string to big.Int"
+		return ""
 	}
 
 	// Check if the number is negative
