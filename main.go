@@ -49,7 +49,7 @@ type RequestBody struct {
 	Gas      string          `json:"gas,omitempty" xml:"gas" form:"gas"`
 	GasPrice string          `json:"gasPrice,omitempty" xml:"gasPrice" form:"gasPrice"`
 	Value    string          `json:"value,omitempty" xml:"value" form:"value"`
-	Data     string          `json:"data" xml:"data" form:"data" validate:"required"`
+	Input    string          `json:"data" xml:"data" form:"input" validate:"required"`
 }
 
 // request body for sending transactions
@@ -698,7 +698,7 @@ func sendTransaction(c *fiber.Ctx) error {
 	if obj.Nonce != "" {
 		objMap["nonce"] = obj.Nonce
 	}
-	objMap["data"] = obj.Data
+	objMap["data"] = obj.Input
 
 	// convert gas, gasPrice, value and nonce to hex from decimal
 	// gas = decimalToHex(gas)
@@ -1088,7 +1088,7 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		}
 
 		// split string at comma
-		data := strings.Split(obj.Data, ",")
+		data := strings.Split(obj.Input, ",")
 
 		// first element is the function signature, and the rest are arguments
 		// keccak hash of function signature
@@ -1142,7 +1142,7 @@ func callContractAtBlock(c *fiber.Ctx) error {
 				})
 			}
 		}
-		obj.Data = hexutil.Encode(sig) + args
+		obj.Input = hexutil.Encode(sig) + args
 
 		// send only non empty values in the request body from obj
 		objMap := map[string]interface{}{
@@ -1162,8 +1162,8 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		if obj.Value != "" {
 			objMap["value"] = obj.Value
 		}
-		if len(obj.Data) > 0 {
-			objMap["data"] = obj.Data
+		if len(obj.Input) > 0 {
+			objMap["data"] = obj.Input
 		}
 		log.Println(objMap)
 
@@ -1223,8 +1223,8 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 	if obj.Value != "" {
 		objMap["value"] = obj.Value
 	}
-	if obj.Data != "" {
-		objMap["data"] = obj.Data
+	if obj.Input != "" {
+		objMap["data"] = obj.Input
 	}
 
 	// convert gas, gasPrice, value and nonce to hex from decimal
