@@ -1259,7 +1259,13 @@ func decimalToHex(number string) string {
 	// decimal to hexadecimal conversion
 	intNumber, success := new(big.Int).SetString(number, 10)
 	if !success {
-		return "failed to conver string to big.Int"
+		return "failed to convert string to big.Int"
+	}
+
+	// Check if the number is negative
+	if intNumber.Sign() < 0 {
+		// For negative numbers, use the two's complement representation
+		intNumber.Add(intNumber, new(big.Int).Lsh(big.NewInt(1), 256)) // Add 2^256 to get the two's complement
 	}
 
 	hexNumber := fmt.Sprintf("0x%x", intNumber)
