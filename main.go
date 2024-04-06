@@ -13,7 +13,6 @@ import (
 
 	"github.com/joho/godotenv"
 
-	// "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -1092,7 +1091,7 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		// get the number of arguments from function signature
 		// take out substring between ( and )
 		argumentsTypes := strings.Split(data[0][strings.Index(data[0], "(")+1:strings.Index(data[0], ")")], ",")
-		log.Println(argumentsTypes)
+		log.Println(argumentsTypes, hexutil.Encode(sig))
 
 		// check if number of arguments is equal to the number of arguments in the function signature
 		if len(argumentsTypes) != len(data)-1 {
@@ -1118,6 +1117,14 @@ func callContractAtBlock(c *fiber.Ctx) error {
 				// convert argument to hex
 				args += strings.Repeat("0", 64-len(decimalToHex(data[i])[2:])) + (decimalToHex(data[i])[2:])
 
+			case "address":
+				// check if address is a valid address
+				if !common.IsHexAddress(data[i]) {
+					return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+						"error": "Invalid address",
+					})
+				}
+				args += strings.Repeat("0", 64-len(data[i][2:])) + data[i][2:]
 			default:
 				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 					"error": "Invalid argument type or argument type not supported",
