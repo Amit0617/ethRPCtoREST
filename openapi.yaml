@@ -333,6 +333,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/hash32"
 
+  # eth_getBalance
+
+  /eth/balance/{address}:
+    get:
+      summary: Returns the balance of the account of given address.
+      tags:
+        - State Methods
+      parameters:
+        - name: address
+          in: path
+          description: Address to check for balance.
+          required: true
+          schema:
+            $ref: "#/components/schemas/address"
+      responses:
+        "200":
+          description: Integer of the current balance in wei at Latest block.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uint"
+              examples:
+                wei-balance:
+                  value: "10000000000000000000000"
 
 components:
   schemas:

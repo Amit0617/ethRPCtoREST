@@ -742,7 +742,7 @@ func getBalanceOfAddressAtBlock(c *fiber.Ctx) error {
 		return balance
 	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid identifier",
+			"error": "Invalid Block Number",
 		})
 	}
 }
