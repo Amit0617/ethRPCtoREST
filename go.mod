@@ -5,7 +5,7 @@ go 1.21.0
 require (
 	github.com/ethereum/go-ethereum v1.12.2
 	github.com/gofiber/contrib/swagger v1.1.1
-	github.com/gofiber/fiber/v2 v2.52.0
+	github.com/gofiber/fiber/v2 v2.52.1
 	github.com/joho/godotenv v1.5.1
 )
 
