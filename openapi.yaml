@@ -1,6 +1,6 @@
 openapi: 3.0.0
 servers:
-    url: /
+  - url: /
 info:
   description: This server provides RESTful interface to the Ethereum execution layer JSON-RPC API.
   version: "1.0.0"
@@ -390,6 +390,37 @@ paths:
               examples:
                 wei-balance:
                   value: "10000000000000000000000"
+
+  # eth_getStorageAt
+
+  /eth/storage/{address}/{position}:
+    get:
+      summary: Returns the value from a storage position at a given address.
+      tags:
+        - State Methods
+      parameters:
+        - name: address
+          in: path
+          description: Address of the storage.
+          required: true
+          schema:
+            $ref: "#/components/schemas/address"
+        - name: position
+          in: path
+          description: Integer of the position in the storage.
+          required: true
+          schema:
+            $ref: "#/components/schemas/uint"
+      responses:
+        "200":
+          description: The value at this storage position.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/uint"
+              examples:
+                storage-value:
+                  value: "0x00000000000000000000000000000000000000000000000000000000000004d2"
 
 components:
   schemas:
