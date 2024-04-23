@@ -252,7 +252,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TransactionReceipt"
+                  "$ref": "#/components/schemas/ReceiptInfo"
                 }
               }
             }
@@ -482,6 +482,139 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/hash32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/balance/{address}": {
+      "get": {
+        "summary": "Returns the balance of the account of given address.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address to check for balance.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integer of the current balance in wei at Latest block.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uint"
+                },
+                "examples": {
+                  "wei-balance": {
+                    "value": "10000000000000000000000"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/balance/{address}/{identifier}": {
+      "get": {
+        "summary": "Returns the balance of the account of given address at a given block.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address to check for balance.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          },
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string \"latest\", \"earliest,\" or \"pending\". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/uint"
+                },
+                {
+                  "$ref": "#/components/schemas/decimal"
+                },
+                {
+                  "$ref": "#/components/schemas/hash32"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integer of the current balance in wei at the given block.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uint"
+                },
+                "examples": {
+                  "wei-balance": {
+                    "value": "10000000000000000000000"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/storage/{address}/{position}": {
+      "get": {
+        "summary": "Returns the value from a storage position at a given address.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address of the storage.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          },
+          {
+            "name": "position",
+            "in": "path",
+            "description": "Integer of the position in the storage.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/uint"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The value at this storage position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uint"
+                },
+                "examples": {
+                  "storage-value": {
+                    "value": "0x00000000000000000000000000000000000000000000000000000000000004d2"
+                  }
                 }
               }
             }
@@ -742,7 +875,7 @@
       },
       "Transaction1559Unsigned": {
         "type": "object",
-        "title": "EIP-1559 transaction.",
+        "title": "EIP-1559 transaction",
         "required": [
           "type",
           "nonce",
@@ -762,8 +895,14 @@
             "pattern": "^0x2$"
           },
           "nonce": {
-            "title": "nonce",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "nonce"
+              }
+            ]
           },
           "to": {
             "title": "to address",
@@ -773,53 +912,117 @@
                 "title": "Contract Creation (null)"
               },
               {
-                "title": "Address",
-                "$ref": "#/components/schemas/address"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/address"
+                  },
+                  {
+                    "title": "Address"
+                  }
+                ]
               }
             ]
           },
           "gas": {
-            "title": "gas limit",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "gas limit"
+              }
+            ]
           },
           "value": {
-            "title": "value",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "value"
+              }
+            ]
           },
           "input": {
-            "title": "input data",
-            "$ref": "#/components/schemas/bytes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "title": "input data"
+              }
+            ]
           },
           "maxPriorityFeePerGas": {
-            "title": "max priority fee per gas",
-            "description": "Maximum fee per gas the sender is willing to pay to miners in wei",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "max priority fee per gas"
+              },
+              {
+                "description": "Maximum fee per gas the sender is willing to pay to miners in wei"
+              }
+            ]
           },
           "maxFeePerGas": {
-            "title": "max fee per gas",
-            "description": "The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "max fee per gas"
+              },
+              {
+                "description": "The maximum total fee per gas the sender is willing to pay (includes the network / base fee and miner / priority fee) in wei"
+              }
+            ]
           },
           "gasPrice": {
-            "title": "gas price",
-            "description": "The effective gas price paid by the sender in wei. For transactions not yet included in a block, this value should be set equal to the max fee per gas. This field is DEPRECATED, please transition to using effectiveGasPrice in the receipt object going forward.",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "gas price"
+              },
+              {
+                "description": "The effective gas price paid by the sender in wei. For transactions not yet included in a block, this value should be set equal to the max fee per gas. This field is DEPRECATED, please transition to using effectiveGasPrice in the receipt object going forward."
+              }
+            ]
           },
           "accessList": {
-            "title": "accessList",
-            "description": "EIP-2930 access list",
-            "$ref": "#/components/schemas/AccessList"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessList"
+              },
+              {
+                "title": "accessList"
+              },
+              {
+                "description": "EIP-2930 access list"
+              }
+            ]
           },
           "chainId": {
-            "title": "chainId",
-            "description": "Chain ID that this transaction is valid on.",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "chainId"
+              },
+              {
+                "description": "Chain ID that this transaction is valid on."
+              }
+            ]
           }
         }
       },
       "Transaction2930Unsigned": {
         "type": "object",
-        "title": "EIP-2930 transaction.",
+        "title": "EIP-2930 transaction",
         "required": [
           "type",
           "nonce",
@@ -837,8 +1040,14 @@
             "pattern": "^0x1$"
           },
           "nonce": {
-            "title": "nonce",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "nonce"
+              }
+            ]
           },
           "to": {
             "title": "to address",
@@ -848,37 +1057,85 @@
                 "title": "Contract Creation (null)"
               },
               {
-                "title": "Address",
-                "$ref": "#/components/schemas/address"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/address"
+                  },
+                  {
+                    "title": "Address"
+                  }
+                ]
               }
             ]
           },
           "gas": {
-            "title": "gas limit",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "gas limit"
+              }
+            ]
           },
           "value": {
-            "title": "value",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "value"
+              }
+            ]
           },
           "input": {
-            "title": "input data",
-            "$ref": "#/components/schemas/bytes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "title": "input data"
+              }
+            ]
           },
           "gasPrice": {
-            "title": "gas price",
-            "description": "The gas price willing to be paid by the sender in wei",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "gas price"
+              },
+              {
+                "description": "The gas price willing to be paid by the sender in wei"
+              }
+            ]
           },
           "accessList": {
-            "title": "accessList",
-            "description": "EIP-2930 access list",
-            "$ref": "#/components/schemas/AccessList"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessList"
+              },
+              {
+                "title": "accessList"
+              },
+              {
+                "description": "EIP-2930 access list"
+              }
+            ]
           },
           "chainId": {
-            "title": "chainId",
-            "description": "Chain ID that this transaction is valid on.",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "chainId"
+              },
+              {
+                "description": "Chain ID that this transaction is valid on."
+              }
+            ]
           }
         }
       },
@@ -893,8 +1150,14 @@
             "pattern": "^0x0$"
           },
           "nonce": {
-            "title": "nonce",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "nonce"
+              }
+            ]
           },
           "to": {
             "title": "to address",
@@ -904,32 +1167,72 @@
                 "title": "Contract Creation (null)"
               },
               {
-                "title": "Address",
-                "$ref": "#/components/schemas/address"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/address"
+                  },
+                  {
+                    "title": "Address"
+                  }
+                ]
               }
             ]
           },
           "gas": {
-            "title": "gas limit",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "gas limit"
+              }
+            ]
           },
           "value": {
-            "title": "value",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "value"
+              }
+            ]
           },
           "input": {
-            "title": "input data",
-            "$ref": "#/components/schemas/bytes"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "title": "input data"
+              }
+            ]
           },
           "gasPrice": {
-            "title": "gas price",
-            "description": "The gas price willing to be paid by the sender in wei",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "gas price"
+              },
+              {
+                "description": "The gas price willing to be paid by the sender in wei"
+              }
+            ]
           },
           "chainId": {
-            "title": "chainId",
-            "description": "Chain ID that this transaction is valid on.",
-            "$ref": "#/components/schemas/uint"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "title": "chainId"
+              },
+              {
+                "description": "Chain ID that this transaction is valid on."
+              }
+            ]
           }
         }
       },
@@ -958,22 +1261,50 @@
             "required": ["yParity", "r", "s"],
             "properties": {
               "yParity": {
-                "title": "yParity",
-                "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "yParity"
+                  },
+                  {
+                    "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature."
+                  }
+                ]
               },
               "v": {
-                "title": "v",
-                "description": "For backwards compatibility, `v` is optionally provided as an alternative to `yParity`. This field is DEPRECATED and all use of it should migrate to `yParity`.",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "v"
+                  },
+                  {
+                    "description": "For backwards compatibility, `v` is optionally provided as an alternative to `yParity`. This field is DEPRECATED and all use of it should migrate to `yParity`."
+                  }
+                ]
               },
               "r": {
-                "title": "r",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "r"
+                  }
+                ]
               },
               "s": {
-                "title": "s",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "s"
+                  }
+                ]
               }
             }
           }
@@ -991,22 +1322,50 @@
             "required": ["yParity", "r", "s"],
             "properties": {
               "yParity": {
-                "title": "yParity",
-                "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature.",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "yParity"
+                  },
+                  {
+                    "description": "The parity (0 for even, 1 for odd) of the y-value of the secp256k1 signature."
+                  }
+                ]
               },
               "v": {
-                "title": "v",
-                "description": "For backwards compatibility, `v` is optionally provided as an alternative to `yParity`. This field is DEPRECATED and all use of it should migrate to `yParity`.",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "v"
+                  },
+                  {
+                    "description": "For backwards compatibility, `v` is optionally provided as an alternative to `yParity`. This field is DEPRECATED and all use of it should migrate to `yParity`."
+                  }
+                ]
               },
               "r": {
-                "title": "r",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "r"
+                  }
+                ]
               },
               "s": {
-                "title": "s",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "s"
+                  }
+                ]
               }
             }
           }
@@ -1024,16 +1383,34 @@
             "required": ["v", "r", "s"],
             "properties": {
               "v": {
-                "title": "v",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "v"
+                  }
+                ]
               },
               "r": {
-                "title": "r",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "r"
+                  }
+                ]
               },
               "s": {
-                "title": "s",
-                "$ref": "#/components/schemas/uint"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/uint"
+                  },
+                  {
+                    "title": "s"
+                  }
+                ]
               }
             }
           }
@@ -1056,131 +1433,333 @@
         "type": "object",
         "properties": {
           "blockHash": {
-            "$ref": "#/components/schemas/hash32",
-            "description": "Hash of the block where this transaction was in. Null when it's pending.",
-            "example": "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/hash32"
+              },
+              {
+                "description": "Hash of the block where this transaction was in. Null when it's pending."
+              },
+              {
+                "example": "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
+              }
+            ]
           },
           "blockNumber": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Block number where this transaction was in. Null when it's pending.",
-            "example": "0x5daf3b"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Block number where this transaction was in. Null when it's pending."
+              },
+              {
+                "example": "0x5daf3b"
+              }
+            ]
           },
           "from": {
-            "$ref": "#/components/schemas/address",
-            "description": "Address of the sender (20 Bytes).",
-            "example": "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "Address of the sender (20 Bytes)."
+              },
+              {
+                "example": "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
+              }
+            ]
           },
           "gas": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Gas provided by the sender.",
-            "example": "0xc350"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Gas provided by the sender."
+              },
+              {
+                "example": "0xc350"
+              }
+            ]
           },
           "gasPrice": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Gas price provided by the sender in Wei.",
-            "example": "0x4a817c800"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Gas price provided by the sender in Wei."
+              },
+              {
+                "example": "0x4a817c800"
+              }
+            ]
           },
           "hash": {
-            "$ref": "#/components/schemas/hash32",
-            "description": "Hash of the transaction (32 Bytes).",
-            "example": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/hash32"
+              },
+              {
+                "description": "Hash of the transaction (32 Bytes)."
+              },
+              {
+                "example": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
+              }
+            ]
           },
           "input": {
-            "$ref": "#/components/schemas/bytes",
-            "description": "The data sent along with the transaction.",
-            "example": "0x68656c6c6f21"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "description": "The data sent along with the transaction."
+              },
+              {
+                "example": "0x68656c6c6f21"
+              }
+            ]
           },
           "nonce": {
-            "$ref": "#/components/schemas/uint",
-            "description": "The number of transactions made by the sender prior to this one.",
-            "example": "0x15"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "The number of transactions made by the sender prior to this one."
+              },
+              {
+                "example": "0x15"
+              }
+            ]
           },
           "to": {
-            "$ref": "#/components/schemas/address",
-            "description": "Address of the receiver. Null when it's a contract creation transaction.",
-            "example": "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "Address of the receiver. Null when it's a contract creation transaction."
+              },
+              {
+                "example": "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
+              }
+            ]
           },
           "transactionIndex": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Integer of the transaction's index position in the block. Null when it's pending.",
-            "example": "0x41"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the transaction's index position in the block. Null when it's pending."
+              },
+              {
+                "example": "0x41"
+              }
+            ]
           },
           "value": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Value transferred in Wei.",
-            "example": "0xf3dbb76162000"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Value transferred in Wei."
+              },
+              {
+                "example": "0xf3dbb76162000"
+              }
+            ]
           },
           "v": {
-            "$ref": "#/components/schemas/uint",
-            "description": "ECDSA recovery id.",
-            "example": "0x25"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "ECDSA recovery id."
+              },
+              {
+                "example": "0x25"
+              }
+            ]
           },
           "r": {
-            "$ref": "#/components/schemas/uint",
-            "description": "ECDSA signature r.",
-            "example": "0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "ECDSA signature r."
+              },
+              {
+                "example": "0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea"
+              }
+            ]
           },
           "s": {
-            "$ref": "#/components/schemas/uint",
-            "description": "ECDSA signature s.",
-            "example": "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "ECDSA signature s."
+              },
+              {
+                "example": "0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
+              }
+            ]
           }
         }
       },
-      "TransactionReceipt": {
+      "ReceiptInfo": {
         "type": "object",
+        "title": "Receipt information",
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "from",
+          "cumulativeGasUsed",
+          "gasUsed",
+          "logs",
+          "logsBloom",
+          "transactionHash",
+          "transactionIndex",
+          "effectiveGasPrice"
+        ],
         "properties": {
           "transactionHash": {
-            "$ref": "#/components/schemas/hash32",
-            "description": "Hash of the transaction (32 Bytes).",
-            "example": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/hash32"
+              },
+              {
+                "description": "Hash of the transaction (32 Bytes)."
+              },
+              {
+                "example": "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b"
+              }
+            ]
           },
           "transactionIndex": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Integer of the transaction's index position in the block.",
-            "example": "0x41"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the transaction's index position in the block. Null when it's pending."
+              }
+            ]
           },
           "blockHash": {
-            "$ref": "#/components/schemas/hash32",
-            "description": "Hash of the block where this transaction was in.",
-            "example": "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/hash32"
+              },
+              {
+                "description": "Hash of the block where this transaction was in. Null when it's pending."
+              },
+              {
+                "example": "0x1d59ff54b1eb26b013ce3cb5fc9dab3705b415a67127a003c3e61eb445bb8df2"
+              }
+            ]
           },
           "blockNumber": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Block number where this transaction was in.",
-            "example": "0x5daf3b"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Block number where this transaction was in. Null when it's pending."
+              },
+              {
+                "example": "0x5daf3b"
+              }
+            ]
           },
           "from": {
-            "$ref": "#/components/schemas/address",
-            "description": "Address of the sender.",
-            "example": "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "Address of the sender (20 Bytes)."
+              },
+              {
+                "example": "0xa7d9ddbe1f17865597fbd27ec712455208b6b76d"
+              }
+            ]
           },
           "to": {
             "nullable": true,
-            "$ref": "#/components/schemas/address",
-            "description": "Address of the receiver. Null when it's a contract creation transaction.",
-            "example": "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "Address of the receiver. Null when it's a contract creation transaction."
+              },
+              {
+                "example": "0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb"
+              }
+            ]
           },
           "cumulativeGasUsed": {
-            "$ref": "#/components/schemas/uint",
-            "description": "The total amount of gas used when this transaction was executed in the block.",
-            "example": "0x33bc"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "The total amount of gas used when this transaction was executed in the block."
+              },
+              {
+                "example": "0x33bc"
+              }
+            ]
           },
           "effectiveGasPrice": {
-            "$ref": "#/components/schemas/uint",
-            "description": "The sum of the base fee and tip paid per unit of gas.",
-            "example": "0x4a817c800"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "The sum of the base fee and tip paid per unit of gas."
+              },
+              {
+                "example": "0x4a817c800"
+              }
+            ]
           },
           "gasUsed": {
-            "$ref": "#/components/schemas/uint",
-            "description": "The amount of gas used by this specific transaction alone.",
-            "example": "0x4dc"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "The amount of gas used by this specific transaction alone."
+              },
+              {
+                "example": "0x4dc"
+              }
+            ]
           },
           "contractAddress": {
             "nullable": true,
-            "$ref": "#/components/schemas/address",
-            "description": "The contract address created, if the transaction was a contract creation, otherwise null.",
-            "example": "0xb60e8dd61c5d32be8058bb8eb970870f07233155"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "The contract address created, if the transaction was a contract creation, otherwise null."
+              },
+              {
+                "example": "0xb60e8dd61c5d32be8058bb8eb970870f07233155"
+              }
+            ]
           },
           "logs": {
             "type": "array",
@@ -1191,29 +1770,58 @@
             "example": [{}]
           },
           "logsBloom": {
-            "$ref": "#/components/schemas/bytes",
-            "description": "Bloom filter for light clients to quickly retrieve related logs.",
-            "example": "0x00...0"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "description": "Bloom filter for light clients to quickly retrieve related logs."
+              },
+              {
+                "example": "0x00...0"
+              }
+            ]
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees."
+              },
+              {
+                "example": "0x0"
+              }
+            ]
           },
           "root": {
-            "$ref": "#/components/schemas/hash32",
-            "description": "32 bytes of post-transaction stateroot (pre Byzantium)",
-            "example": "0x00...0"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/hash32"
+              },
+              {
+                "description": "32 bytes of post-transaction stateroot (pre Byzantium)"
+              },
+              {
+                "example": "0x00...0"
+              }
+            ]
           },
           "status": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Either 1 (success) or 0 (failure)",
-            "example": "0x1"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Either 1 (success) or 0 (failure)"
+              },
+              {
+                "example": "0x1"
+              }
+            ]
           }
-        },
-        "oneOf": [
-          {
-            "required": ["root"]
-          },
-          {
-            "required": ["status"]
-          }
-        ]
+        }
       },
       "TransactionPending": {
         "type": "object",
@@ -1229,32 +1837,74 @@
         "type": "object",
         "properties": {
           "from": {
-            "$ref": "#/components/schemas/address",
-            "description": "The address the transaction is sent from."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "The address the transaction is sent from."
+              }
+            ]
           },
           "to": {
-            "$ref": "#/components/schemas/address",
-            "description": "(optional when creating new contract) The address the transaction is directed to."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "(optional when creating new contract) The address the transaction is directed to."
+              }
+            ]
           },
           "gas": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Integer of the gas provided for the transaction execution. It will return unused gas."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the gas provided for the transaction execution. It will return unused gas."
+              }
+            ]
           },
           "gasPrice": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Integer of the gasPrice used for each paid gas."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the gasPrice used for each paid gas."
+              }
+            ]
           },
           "value": {
-            "$ref": "#/components/schemas/uint",
-            "description": "Integer of the value sent with this transaction."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the value sent with this transaction."
+              }
+            ]
           },
           "input": {
-            "$ref": "#/components/schemas/bytes",
-            "description": "The compiled code of a contract OR the hash of the invoked method signature and encoded parameters."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "description": "The compiled code of a contract OR the hash of the invoked method signature and encoded parameters."
+              }
+            ]
           },
           "nonce": {
-            "$ref": "#/components/schemas/uint",
-            "description": "The compiled code of a contract OR the hash of the invoked method signature and encoded parameters."
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "The compiled code of a contract OR the hash of the invoked method signature and encoded parameters."
+              }
+            ]
           }
         },
         "required": ["from", "input"]
