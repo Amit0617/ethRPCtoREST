@@ -11,8 +11,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/joho/godotenv"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -37,7 +35,6 @@ var hashRegex = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 // A block number can also be a hex number with 0x prefix
 // A block number will always consist of a non-zero character after 0x, except for "0x0".
 
-// Regex to allow for default block identifiers
 var blockNumberRegex = regexp.MustCompile(`^0x([1-9a-f]+[0-9a-f]*|0)$`)
 var decimalNumberRegex = regexp.MustCompile(`^([1-9][0-9]*|0)$`)
 var defaultBlockParamRegex = regexp.MustCompile(`^(earliest|latest|pending|safe|finalized)$`)
@@ -72,13 +69,10 @@ func main() {
 	}
 	app.Use(swagger.New(cfg))
 
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("Error loading environment variables file")
-	}
-
 	RPC_URL = os.Args[1]
 	log.Println(RPC_URL)
+
+	var err error
 
 	client, err = ethclient.Dial(RPC_URL)
 	if err != nil {
