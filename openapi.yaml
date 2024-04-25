@@ -337,7 +337,7 @@ paths:
 
   /eth/balance/{address}:
     get:
-      summary: Returns the balance of the account of given address.
+      summary: Returns the balance of the account of given address at latest block.
       tags:
         - State Methods
       parameters:
@@ -395,7 +395,7 @@ paths:
 
   /eth/storage/{address}/{position}:
     get:
-      summary: Returns the value from a storage position at a given address.
+      summary: Returns the value from a storage position at a given address at latest block.
       tags:
         - State Methods
       parameters:
@@ -417,7 +417,54 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/uint"
+                anyOf:
+                  - $ref: "#/components/schemas/uint"
+                  - $ref: "#/components/schemas/bytes"
+                  - $ref: "#/components/schemas/address"
+                  - $ref: "#/components/schemas/hash32"
+              examples:
+                storage-value:
+                  value: "0x00000000000000000000000000000000000000000000000000000000000004d2"
+
+  /eth/storage/{address}/{position}/{identifier}:
+    get:
+      summary: Returns the value from a storage position at a given address at a given block.
+      tags:
+        - State Methods
+      parameters:
+        - name: address
+          in: path
+          description: Address of the storage.
+          required: true
+          schema:
+            $ref: "#/components/schemas/address"
+        - name: position
+          in: path
+          description: Integer of the position in the storage.
+          required: true
+          schema:
+            $ref: "#/components/schemas/uint"
+        - name: identifier
+          in: path
+          description: Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
+              - $ref: "#/components/schemas/hash32"
+      responses:
+        "200":
+          description: The value at this storage position.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: "#/components/schemas/uint"
+                  - $ref: "#/components/schemas/bytes"
+                  - $ref: "#/components/schemas/address"
+                  - $ref: "#/components/schemas/hash32"
               examples:
                 storage-value:
                   value: "0x00000000000000000000000000000000000000000000000000000000000004d2"
