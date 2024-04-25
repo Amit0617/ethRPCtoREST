@@ -1092,10 +1092,14 @@ func callContractAtBlock(c *fiber.Ctx) error {
 
 		// first element is the function signature, and the rest are arguments
 		// keccak hash of function signature
-		sig := crypto.Keccak256Hash([]byte(data[0])).Bytes()[0:4]
+		sig := crypto.Keccak256Hash([]byte(strings.TrimSpace(data[0]))).Bytes()[0:4]
 		// get the number of arguments from function signature
-		// take out substring between ( and )
-		argumentsTypes := strings.Split(data[0][strings.Index(data[0], "(")+1:strings.Index(data[0], ")")], ",")
+		// take out substring between parenthesis "( )"
+		argumentsTypesString := strings.TrimSpace(data[0][strings.Index(data[0], "(")+1 : strings.Index(data[0], ")")])
+		var argumentsTypes []string
+		if len(argumentsTypesString) != 0 {
+			argumentsTypes = strings.Split(argumentsTypesString, ",")
+		}
 		log.Println(argumentsTypes, hexutil.Encode(sig))
 
 		// check if number of arguments is equal to the number of arguments in the function signature
@@ -1255,7 +1259,7 @@ func GetMapPosition(key string, position string) string {
 
 	key = strings.Repeat("0", 64-len(key)) + key
 	// left pad position with 0s to make it 32 bytes long
-	position = strings.Repeat("0", 64-len(position)) + position
+	position = strings.Repeat("0", 64-len(position[2:])) + position[2:]
 	// concatenate key and position
 	final_position_hex := key + position
 	log.Print(final_position_hex)
