@@ -1259,7 +1259,37 @@ components:
         nonce:
           allOf:
             - $ref: "#/components/schemas/uint"
-            - description: The compiled code of a contract OR the hash of the invoked method signature and encoded parameters.
+            - description: Integer of a nonce. This allows to overwrite your own pending transactions that use the same nonce.
       required:
         - from
         - input
+
+    CallObject:
+      type: object
+      properties:
+        from:
+          allOf:
+            - $ref: "#/components/schemas/address"
+            - description: The address the transaction is sent from.
+        to:
+          allOf:
+            - $ref: "#/components/schemas/address"
+            - description: The address the transaction is directed to.
+        gas:
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Integer of the gas provided for the transaction execution. It will return unused gas.
+        gasPrice:
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Integer of the gasPrice used for each paid gas.
+        value:
+          allOf:
+            - $ref: "#/components/schemas/uint"
+            - description: Integer of the value sent with this transaction.
+        input:
+          allOf:
+            - $ref: "#/components/schemas/bytes"
+            - description: The compiled code of a contract OR the hash of the invoked method signature and encoded parameters.
+      required:
+        - to

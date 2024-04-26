@@ -66,6 +66,7 @@ func main() {
 		FilePath: "./openapi.json",
 		Path:     "docs",
 		Title:    "Ethereum RPC API",
+		CacheAge: 3600,
 	}
 	app.Use(swagger.New(cfg))
 

@@ -491,7 +491,7 @@
     },
     "/eth/balance/{address}": {
       "get": {
-        "summary": "Returns the balance of the account of given address.",
+        "summary": "Returns the balance of the account of given address at latest block.",
         "tags": ["State Methods"],
         "parameters": [
           {
@@ -581,7 +581,7 @@
     },
     "/eth/storage/{address}/{position}": {
       "get": {
-        "summary": "Returns the value from a storage position at a given address.",
+        "summary": "Returns the value from a storage position at a given address at latest block.",
         "tags": ["State Methods"],
         "parameters": [
           {
@@ -609,11 +609,420 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/uint"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/uint"
+                    },
+                    {
+                      "$ref": "#/components/schemas/bytes"
+                    },
+                    {
+                      "$ref": "#/components/schemas/address"
+                    },
+                    {
+                      "$ref": "#/components/schemas/hash32"
+                    }
+                  ]
                 },
                 "examples": {
                   "storage-value": {
                     "value": "0x00000000000000000000000000000000000000000000000000000000000004d2"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/storage/{address}/{position}/{identifier}": {
+      "get": {
+        "summary": "Returns the value from a storage position at a given address at a given block.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address of the storage.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          },
+          {
+            "name": "position",
+            "in": "path",
+            "description": "Integer of the position in the storage.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/uint"
+            }
+          },
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string \"latest\", \"earliest,\" or \"pending\". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/uint"
+                },
+                {
+                  "$ref": "#/components/schemas/decimal"
+                },
+                {
+                  "$ref": "#/components/schemas/hash32"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The value at this storage position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/uint"
+                    },
+                    {
+                      "$ref": "#/components/schemas/bytes"
+                    },
+                    {
+                      "$ref": "#/components/schemas/address"
+                    },
+                    {
+                      "$ref": "#/components/schemas/hash32"
+                    }
+                  ]
+                },
+                "examples": {
+                  "storage-value": {
+                    "value": "0x00000000000000000000000000000000000000000000000000000000000004d2"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/txcount/{address}": {
+      "get": {
+        "summary": "Returns the number of transactions sent from an address at latest block.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address of the account.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integer of the number of transactions sent from this address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uint"
+                },
+                "examples": {
+                  "tx-count": {
+                    "value": "0x1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/txcount/{address}/{identifier}": {
+      "get": {
+        "summary": "Returns the number of transactions sent from an address at a given block.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address of the account.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          },
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string \"latest\", \"earliest,\" or \"pending\". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/uint"
+                },
+                {
+                  "$ref": "#/components/schemas/decimal"
+                },
+                {
+                  "$ref": "#/components/schemas/hash32"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integer of the number of transactions sent from this address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uint"
+                },
+                "examples": {
+                  "tx-count": {
+                    "value": "0x1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/code/{address}": {
+      "get": {
+        "summary": "Returns code at a given address at latest block.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address of the account.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The code from the given address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/bytes"
+                },
+                "examples": {
+                  "code": {
+                    "value": "0x600160008035811a818181146012578301005b601b6001356025565b8060005260206000f25b600060078202905091905056"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/code/{address}/{identifier}": {
+      "get": {
+        "summary": "Returns code at a given address at a given block.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "description": "Address of the account.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/address"
+            }
+          },
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string \"latest\", \"earliest,\" or \"pending\". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/uint"
+                },
+                {
+                  "$ref": "#/components/schemas/decimal"
+                },
+                {
+                  "$ref": "#/components/schemas/hash32"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The code from the given address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/bytes"
+                },
+                "examples": {
+                  "code": {
+                    "value": "0x600160008035811a818181146012578301005b601b6001356025565b8060005260206000f25b600060078202905091905056"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/call": {
+      "post": {
+        "summary": "Executes a new message call immediately without creating a transaction on the block chain. Often used for executing read-only smart contract functions, for example the balanceOf (view or pure functions) for an ERC-20 contract.",
+        "tags": ["State Methods"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallObject"
+              },
+              "examples": {
+                "call": {
+                  "value": {
+                    "from": "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
+                    "to": "0x85f43d8a49eeb85d32cf465507dd71d507100c1",
+                    "gas": "0x76c0",
+                    "gasPrice": "0x9184e72a000",
+                    "value": "0x9184e72a",
+                    "input": "0x68656c6c6f21"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The return value of executed contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/uint"
+                    },
+                    {
+                      "$ref": "#/components/schemas/bytes"
+                    },
+                    {
+                      "$ref": "#/components/schemas/address"
+                    },
+                    {
+                      "$ref": "#/components/schemas/hash32"
+                    }
+                  ]
+                },
+                "examples": {
+                  "return-value": {
+                    "value": "0x"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/eth/call/{identifier}": {
+      "post": {
+        "summary": "Executes a new message call immediately without creating a transaction on the block chain at a given block. Often used for executing read-only smart contract functions, for example the balanceOf (view or pure functions) for an ERC-20 contract.",
+        "tags": ["State Methods"],
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string \"latest\", \"earliest,\" or \"pending\". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)",
+            "required": true,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/components/schemas/uint"
+                },
+                {
+                  "$ref": "#/components/schemas/decimal"
+                },
+                {
+                  "$ref": "#/components/schemas/hash32"
+                }
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallObject"
+              },
+              "examples": {
+                "call": {
+                  "value": {
+                    "from": "0x407d73d8a49eeb85d32cf465507dd71d507100c1",
+                    "to": "0x85f43d8a49eeb85d32cf465507dd71d507100c1",
+                    "gas": "0x76c0",
+                    "gasPrice": "0x9184e72a000",
+                    "value": "0x9184e72a",
+                    "input": "0x68656c6c6f21"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The return value of executed contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/uint"
+                    },
+                    {
+                      "$ref": "#/components/schemas/bytes"
+                    },
+                    {
+                      "$ref": "#/components/schemas/address"
+                    },
+                    {
+                      "$ref": "#/components/schemas/hash32"
+                    }
+                  ]
+                },
+                "examples": {
+                  "return-value": {
+                    "value": "0x"
                   }
                 }
               }
@@ -1902,12 +2311,78 @@
                 "$ref": "#/components/schemas/uint"
               },
               {
-                "description": "The compiled code of a contract OR the hash of the invoked method signature and encoded parameters."
+                "description": "Integer of a nonce. This allows to overwrite your own pending transactions that use the same nonce."
               }
             ]
           }
         },
         "required": ["from", "input"]
+      },
+      "CallObject": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "The address the transaction is sent from."
+              }
+            ]
+          },
+          "to": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/address"
+              },
+              {
+                "description": "The address the transaction is directed to."
+              }
+            ]
+          },
+          "gas": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the gas provided for the transaction execution. It will return unused gas."
+              }
+            ]
+          },
+          "gasPrice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the gasPrice used for each paid gas."
+              }
+            ]
+          },
+          "value": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/uint"
+              },
+              {
+                "description": "Integer of the value sent with this transaction."
+              }
+            ]
+          },
+          "input": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/bytes"
+              },
+              {
+                "description": "The compiled code of a contract OR the hash of the invoked method signature and encoded parameters."
+              }
+            ]
+          }
+        },
+        "required": ["to"]
       }
     }
   }
