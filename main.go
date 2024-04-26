@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 
 	"fmt"
 	"log"
@@ -1082,66 +1083,13 @@ func callContractAtBlock(c *fiber.Ctx) error {
 			})
 		}
 
-		// split string at comma
-		data := strings.Split(obj.Input, ",")
-
-		// first element is the function signature, and the rest are arguments
-		// keccak hash of function signature
-		sig := crypto.Keccak256Hash([]byte(strings.TrimSpace(data[0]))).Bytes()[0:4]
-		// get the number of arguments from function signature
-		// take out substring between parenthesis "( )"
-		argumentsTypesString := strings.TrimSpace(data[0][strings.Index(data[0], "(")+1 : strings.Index(data[0], ")")])
-		var argumentsTypes []string
-		if len(argumentsTypesString) != 0 {
-			argumentsTypes = strings.Split(argumentsTypesString, ",")
-		}
-		log.Println(argumentsTypes, hexutil.Encode(sig))
-
-		// check if number of arguments is equal to the number of arguments in the function signature
-		if len(argumentsTypes) != len(data)-1 {
+		var encodingError error
+		obj.Input, encodingError = EncodeFunctionSignature(obj.Input)
+		if encodingError != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid number of arguments",
+				"error": encodingError.Error(),
 			})
 		}
-
-		// trim whitespace for both data and argumentsTypes
-		for i := 0; i < len(data); i++ {
-			data[i] = strings.TrimSpace(data[i])
-			if i < len(argumentsTypes) {
-				argumentsTypes[i] = strings.TrimSpace(argumentsTypes[i])
-			}
-		}
-
-		// use switch case to determine the type of each argument and encode it accordingly
-		var args string
-
-		for i := 1; i < len(data); i++ {
-			switch argumentsTypes[i-1] {
-			case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
-				hexNumber := decimalToHex(data[i])
-				if hexNumber == "" {
-					return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-						"error": "Invalid number passed as argument " + data[i] + ". It should be an integer",
-					})
-				}
-				// convert argument to hex
-				args += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
-
-			case "address":
-				// check if address is a valid address
-				if !common.IsHexAddress(data[i]) {
-					return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-						"error": "Invalid address " + data[i],
-					})
-				}
-				args += strings.Repeat("0", 64-len(data[i][2:])) + data[i][2:]
-			default:
-				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-					"error": "Invalid argument type or argument type not supported",
-				})
-			}
-		}
-		obj.Input = hexutil.Encode(sig) + args
 
 		// send only non empty values in the request body from obj
 		objMap := map[string]interface{}{
@@ -1182,7 +1130,7 @@ func callContractAtBlock(c *fiber.Ctx) error {
 		var result string
 		err := rpcClient.CallContext(ctx, &result, "eth_call", objMap, number)
 		if err != nil {
-			log.Print("Error calling contract:", err)
+			log.Print("Error calling contract:", err.Error())
 		}
 		return c.JSON(result)
 	}
@@ -1245,6 +1193,62 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 		log.Print("Error calling contract:", err)
 	}
 	return c.JSON(result)
+}
+
+func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
+	// split string at comma
+	data := strings.Split(functionSignatureWithArgs, ",")
+
+	// first element is the function signature, and the rest are arguments
+	// keccak hash of function signature
+	sig := crypto.Keccak256Hash([]byte(strings.TrimSpace(data[0]))).Bytes()[0:4]
+	// get the number of arguments from function signature
+	// take out substring between parenthesis "( )"
+	argumentsTypesString := strings.TrimSpace(data[0][strings.Index(data[0], "(")+1 : strings.Index(data[0], ")")])
+	var argumentsTypes []string
+	if len(argumentsTypesString) != 0 {
+		argumentsTypes = strings.Split(argumentsTypesString, ",")
+	}
+	log.Println(argumentsTypes, hexutil.Encode(sig))
+
+	// check if number of arguments is equal to the number of arguments in the function signature
+	if len(argumentsTypes) != len(data)-1 {
+		return "", errors.New("invalid number of arguments")
+	}
+
+	// trim whitespace for both data and argumentsTypes
+	for i := 0; i < len(data); i++ {
+		data[i] = strings.TrimSpace(data[i])
+		if i < len(argumentsTypes) {
+			argumentsTypes[i] = strings.TrimSpace(argumentsTypes[i])
+		}
+	}
+
+	// use switch case to determine the type of each argument and encode it accordingly
+	var args string
+
+	for i := 1; i < len(data); i++ {
+		switch argumentsTypes[i-1] {
+		case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
+			hexNumber := decimalToHex(data[i])
+			if hexNumber == "" {
+				return "", errors.New("Invalid number passed as argument " + data[i] + ". It should be an integer")
+			}
+			// convert argument to hex
+			args += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
+
+		case "address":
+			// check if address is a valid address
+			if !common.IsHexAddress(data[i]) {
+				return "", errors.New("invalid address " + data[i])
+			}
+			args += strings.Repeat("0", 64-len(data[i][2:])) + data[i][2:]
+		default:
+			return "", errors.New("invalid argument type or argument type not supported")
+		}
+	}
+
+	return hexutil.Encode(sig) + args, nil
 }
 
 func GetMapPosition(key string, position string) string {
