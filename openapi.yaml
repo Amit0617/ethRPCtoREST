@@ -526,6 +526,63 @@ paths:
                 tx-count:
                   value: "0x1"
 
+  # eth_getCode
+  /eth/code/{address}:
+    get:
+      summary: Returns code at a given address at latest block.
+      tags:
+        - State Methods
+      parameters:
+        - name: address
+          in: path
+          description: Address of the account.
+          required: true
+          schema:
+            $ref: "#/components/schemas/address"
+      responses:
+        "200":
+          description: The code from the given address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/bytes"
+              examples:
+                code:
+                  value: "0x600160008035811a818181146012578301005b601b6001356025565b8060005260206000f25b600060078202905091905056"
+
+  /eth/code/{address}/{identifier}:
+    get:
+      summary: Returns code at a given address at a given block.
+      tags:
+        - State Methods
+      parameters:
+        - name: address
+          in: path
+          description: Address of the account.
+          required: true
+          schema:
+            $ref: "#/components/schemas/address"
+        - name: identifier
+          in: path
+          description: Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
+              - $ref: "#/components/schemas/hash32"
+      responses:
+        "200":
+          description: The code from the given address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/bytes"
+              examples:
+                code:
+                  value: "0x600160008035811a818181146012578301005b601b6001356025565b8060005260206000f25b600060078202905091905056"
+
 components:
   schemas:
     GetBlockBy:
