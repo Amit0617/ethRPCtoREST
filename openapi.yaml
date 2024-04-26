@@ -583,6 +583,86 @@ paths:
                 code:
                   value: "0x600160008035811a818181146012578301005b601b6001356025565b8060005260206000f25b600060078202905091905056"
 
+  # eth_call
+  /eth/call:
+    post:
+      summary: Executes a new message call immediately without creating a transaction on the block chain. Often used for executing read-only smart contract functions, for example the balanceOf (view or pure functions) for an ERC-20 contract.
+      tags:
+        - State Methods
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CallObject"
+            examples:
+              call:
+                value:
+                  "from": "0x407d73d8a49eeb85d32cf465507dd71d507100c1"
+                  "to": "0x85f43d8a49eeb85d32cf465507dd71d507100c1"
+                  "gas": "0x76c0"
+                  "gasPrice": "0x9184e72a000"
+                  "value": "0x9184e72a"
+                  "input": "0x68656c6c6f21"
+      responses:
+        "200":
+          description: The return value of executed contract.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: "#/components/schemas/uint"
+                  - $ref: "#/components/schemas/bytes"
+                  - $ref: "#/components/schemas/address"
+                  - $ref: "#/components/schemas/hash32"
+              examples:
+                return-value:
+                  value: "0x"
+
+  /eth/call/{identifier}:
+    post:
+      summary: Executes a new message call immediately without creating a transaction on the block chain at a given block. Often used for executing read-only smart contract functions, for example the balanceOf (view or pure functions) for an ERC-20 contract.
+      tags:
+        - State Methods
+      parameters:
+        - name: identifier
+          in: path
+          description: Hash of a block (32 Bytes) or block number in hexadecimal or decimal (integer), or the string "latest", "earliest," or "pending". See [default block parameter](https://ethereum.org/en/developers/docs/apis/json-rpc/#default-block)
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/uint"
+              - $ref: "#/components/schemas/decimal"
+              - $ref: "#/components/schemas/hash32"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CallObject"
+            examples:
+              call:
+                value:
+                  "from": "0x407d73d8a49eeb85d32cf465507dd71d507100c1"
+                  "to": "0x85f43d8a49eeb85d32cf465507dd71d507100c1"
+                  "gas": "0x76c0"
+                  "gasPrice": "0x9184e72a000"
+                  "value": "0x9184e72a"
+                  "input": "0x68656c6c6f21"
+      responses:
+        "200":
+          description: The return value of executed contract.
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: "#/components/schemas/uint"
+                  - $ref: "#/components/schemas/bytes"
+                  - $ref: "#/components/schemas/address"
+                  - $ref: "#/components/schemas/hash32"
+              examples:
+                return-value:
+                  value: "0x"
+
 components:
   schemas:
     GetBlockBy:
