@@ -669,7 +669,29 @@ func sendTransaction(c *fiber.Ctx) error {
 		})
 	}
 
-	log.Print(obj)
+	// Check if from is a valid address
+	if !common.IsHexAddress(obj.From.String()) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid from address",
+		})
+	}
+
+	// Check if it is a contract creation transaction
+	if obj.To != nil {
+		var encodingErr error
+		obj.Input, encodingErr = EncodeFunctionSignature(obj.Input)
+		if encodingErr != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": encodingErr.Error(),
+			})
+		}
+		// Check if to is a valid address
+		if !common.IsHexAddress(obj.To.String()) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid to address",
+			})
+		}
+	}
 
 	// send only non empty values in the request body from obj
 	objMap := make(map[string]interface{})
