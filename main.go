@@ -1256,7 +1256,7 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 			if hexNumber == "" {
 				return "", errors.New("Invalid number passed as argument " + data[i] + ". It should be an integer")
 			}
-			// convert argument to hex
+			// prefix hex with zeroes to make it 32 bytes long
 			args += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
 
 		case "address":
@@ -1265,6 +1265,23 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 				return "", errors.New("invalid address " + data[i])
 			}
 			args += strings.Repeat("0", 64-len(data[i][2:])) + data[i][2:]
+
+		case "bool":
+			if data[i] == "true" {
+				args += strings.Repeat("0", 63) + "1"
+			} else if data[i] == "false" {
+				args += strings.Repeat("0", 64)
+			} else {
+				return "", errors.New("invalid boolean value " + data[i])
+			}
+
+		case "bytes1", "bytes2", "bytes3", "bytes4", "bytes5", "bytes6", "bytes7", "bytes8", "bytes9", "bytes10", "bytes11", "bytes12", "bytes13", "bytes14", "bytes15", "bytes16", "bytes17", "bytes18", "bytes19", "bytes20", "bytes21", "bytes22", "bytes23", "bytes24", "bytes25", "bytes26", "bytes27", "bytes28", "bytes29", "bytes30", "bytes31", "bytes32":
+			// convert data to hex
+			// e.g. "abc" to "0x616263"
+			hexData := hexutil.Encode([]byte(data[i]))
+			// postfix hex with zeroes to make it 32 bytes long
+			args += hexData[2:] + strings.Repeat("0", 64-len(hexData[2:]))
+
 		default:
 			return "", errors.New("invalid argument type or argument type not supported")
 		}
