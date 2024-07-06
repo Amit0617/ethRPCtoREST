@@ -264,7 +264,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/uint"
+                $ref: "#/components/schemas/decimal"
 
   # eth_blockNumber
 
