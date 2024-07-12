@@ -717,7 +717,7 @@ func sendTransaction(c *fiber.Ctx) error {
 		objMap["nonce"] = obj.Nonce
 	}
 	objMap["data"] = obj.Input
-
+	print(obj.Input)
 	// convert gas, gasPrice, value and nonce to hex from decimal
 	// gas = decimalToHex(gas)
 	// gasPrice = decimalToHex(gasPrice)
@@ -1218,76 +1218,201 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 }
 
 func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
-	// split string at comma
-	data := strings.Split(functionSignatureWithArgs, ",")
+	// Find the position of the first opening parenthesis
+	openParenIndex := strings.Index(functionSignatureWithArgs, "(")
+	if openParenIndex == -1 {
+		return "", errors.New("invalid function signature format")
+	}
 
+	// Find the position of the last closing parenthesis
+	closeParenIndex := strings.LastIndex(functionSignatureWithArgs, ")")
+	if closeParenIndex == -1 || closeParenIndex < openParenIndex {
+		return "", errors.New("invalid function signature format")
+	}
+	// Extract the function name and arguments types
+	functionSignature := strings.TrimSpace(functionSignatureWithArgs[:closeParenIndex+1])
+	argsString := strings.TrimSpace(functionSignatureWithArgs[closeParenIndex+1:])
+
+	// Split the arguments string, respecting nested structures
+	args, err := splitArgs(strings.TrimLeft(argsString, ","))
+	fmt.Print(argsString, args, len(args))
+	if err != nil {
+		return "", err
+	}
+
+	// Extract argument types from the function signature
+	argTypes := strings.Split(functionSignature[openParenIndex+1:closeParenIndex], ",")
+	fmt.Print("argTypes", argTypes)
+	for i := range argTypes {
+		argTypes[i] = strings.TrimSpace(argTypes[i])
+	}
+
+	// Check if the number of arguments matches the function signature
+	if len(args) != len(argTypes) {
+		return "", errors.New("number of arguments doesn't match function signature")
+	}
+
+	// Keccak hash of function signature
+	sig := crypto.Keccak256Hash([]byte(functionSignature)).Bytes()[:4]
+
+	// data := [functionSignature, args]
+	// log.Print(data)
 	// first element is the function signature, and the rest are arguments
 	// keccak hash of function signature
-	sig := crypto.Keccak256Hash([]byte(strings.TrimSpace(data[0]))).Bytes()[0:4]
+	// sig := crypto.Keccak256Hash([]byte(strings.TrimSpace(data[0]))).Bytes()[0:4]
 	// get the number of arguments from function signature
 	// take out substring between parenthesis "( )"
-	argumentsTypesString := strings.TrimSpace(data[0][strings.Index(data[0], "(")+1 : strings.Index(data[0], ")")])
-	var argumentsTypes []string
-	if len(argumentsTypesString) != 0 {
-		argumentsTypes = strings.Split(argumentsTypesString, ",")
-	}
-	log.Println(argumentsTypes, hexutil.Encode(sig))
+	// argumentsTypesString := strings.TrimSpace(data[0][strings.Index(data[0], "(")+1 : strings.Index(data[0], ")")])
+	// var argumentsTypes []string
+	// if len(argumentsTypesString) != 0 {
+	// 	argumentsTypes = strings.Split(argumentsTypesString, ",")
+	// }
+	// log.Print(argumentsTypes, hexutil.Encode(sig))
 
-	// check if number of arguments is equal to the number of arguments in the function signature
-	if len(argumentsTypes) != len(data)-1 {
-		return "", errors.New("invalid number of arguments")
-	}
+	// // check if number of arguments is equal to the number of arguments types in the function signature
+	// if len(argumentsTypes) != len(data)-1 {
+	// 	return "", errors.New("invalid number of arguments")
+	// }
 
-	// trim whitespace for both data and argumentsTypes
-	for i := 0; i < len(data); i++ {
-		data[i] = strings.TrimSpace(data[i])
-		if i < len(argumentsTypes) {
-			argumentsTypes[i] = strings.TrimSpace(argumentsTypes[i])
-		}
-	}
+	// // trim whitespace for both data and argumentsTypes
+	// for i := 0; i < len(data); i++ {
+	// 	data[i] = strings.TrimSpace(data[i])
+	// 	if i < len(argumentsTypes) {
+	// 		argumentsTypes[i] = strings.TrimSpace(argumentsTypes[i])
+	// 	}
+	// }
 
 	// use switch case to determine the type of each argument and encode it accordingly
-	var args string
+	var encodedArgs string
+	var dynamicData string
+	dynamicOffset := len(argTypes) * 32 // Initial offset for dynamic data
 
-	for i := 1; i < len(data); i++ {
-		switch argumentsTypes[i-1] {
+	for i := 0; i < len(args); i++ {
+		switch argTypes[i] {
 		case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
-			hexNumber := decimalToHex(data[i])
+			hexNumber := decimalToHex(args[i])
 			if hexNumber == "" {
-				return "", errors.New("Invalid number passed as argument " + data[i] + ". It should be an integer")
+				return "", errors.New("invalid number passed as argument " + args[i] + ". It should be an integer")
 			}
 			// prefix hex with zeroes to make it 32 bytes long
-			args += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
+			encodedArgs += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
 
 		case "address":
 			// check if address is a valid address
-			if !common.IsHexAddress(data[i]) {
-				return "", errors.New("invalid address " + data[i])
+			if !common.IsHexAddress(args[i]) {
+				return "", errors.New("invalid address " + args[i])
 			}
-			args += strings.Repeat("0", 64-len(data[i][2:])) + data[i][2:]
+			encodedArgs += strings.Repeat("0", 64-len(args[i][2:])) + args[i][2:]
 
 		case "bool":
-			if data[i] == "true" {
-				args += strings.Repeat("0", 63) + "1"
-			} else if data[i] == "false" {
-				args += strings.Repeat("0", 64)
+			if args[i] == "true" {
+				encodedArgs += strings.Repeat("0", 63) + "1"
+			} else if args[i] == "false" {
+				encodedArgs += strings.Repeat("0", 64)
 			} else {
-				return "", errors.New("invalid boolean value " + data[i])
+				return "", errors.New("invalid boolean value " + args[i])
 			}
 
 		case "bytes1", "bytes2", "bytes3", "bytes4", "bytes5", "bytes6", "bytes7", "bytes8", "bytes9", "bytes10", "bytes11", "bytes12", "bytes13", "bytes14", "bytes15", "bytes16", "bytes17", "bytes18", "bytes19", "bytes20", "bytes21", "bytes22", "bytes23", "bytes24", "bytes25", "bytes26", "bytes27", "bytes28", "bytes29", "bytes30", "bytes31", "bytes32":
-			// convert data to hex
+			// convert args to hex
 			// e.g. "abc" to "0x616263"
-			hexData := hexutil.Encode([]byte(data[i]))
+			hexData := hexutil.Encode([]byte(args[i]))
 			// postfix hex with zeroes to make it 32 bytes long
-			args += hexData[2:] + strings.Repeat("0", 64-len(hexData[2:]))
+			encodedArgs += hexData[2:] + strings.Repeat("0", 64-len(hexData[2:]))
+
+		// The following are dynamic types.
+		// bytes
+		// string
+		// T[] for any T
+		// T[k] for any dynamic T and any k >= 0
+		// (T1,...,Tk) if Ti is dynamic for some 1 <= i <= k
+		case "string", "bytes":
+			dynamicOffsetHex := fmt.Sprintf("%064x", dynamicOffset)
+			encodedArgs += dynamicOffsetHex
+			fmt.Print("encodedArgs", encodedArgs)
+			// convert string to utf-8 bytes
+			utf8Bytes := []byte(args[i])
+			// convert utf-8 bytes to hex
+			hexData := hexutil.Encode(utf8Bytes)
+			fmt.Print("hexData", hexData, "\n")
+			// encode length of hexData in hex
+			hexLength := fmt.Sprintf("%064x", len(hexData[2:])/2)
+			fmt.Print("hexLength", hexLength, "\n")
+			// prefix with zeroes to make it 32 bytes long
+			dynamicData += hexLength
+			// postfix with zeroes to make it 32 bytes long
+			dynamicData += hexData[2:] + strings.Repeat("0", 64-len(hexData[2:]))
+			// increment dynamicOffset by length of hexData and length of hexLength
+			dynamicOffset += 64 // 32 bytes for length and 32 bytes for data
+
+		case "int[]", "uint256[]":
+			dynamicOffsetHex := fmt.Sprintf("%064x", dynamicOffset)
+			encodedArgs += dynamicOffsetHex
+			// Remove brackets and split the array at comma
+			arrayData := strings.Split(args[i][1:len(args[i])-1], ",")
+			// encode length of array in hex
+			// prefix with zeroes, the hex converted value to make it 32 bytes(64 characters) long
+			dynamicData += fmt.Sprintf("%064x", len(arrayData))
+			// encode each element of the array
+			for j := 0; j < len(arrayData); j++ {
+				hexNumber := decimalToHex(strings.TrimSpace(arrayData[j]))
+				if hexNumber == "" {
+					return "", errors.New("invalid number passed as argument " + arrayData[j] + ". It should be an integer")
+				}
+				// prefix hex with zeroes to make it 32 bytes long
+				dynamicData += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
+			}
+			// increment dynamicOffset by length of arrayDataLength and length of arrayData
+			dynamicOffset += 32 + len(arrayData)*32
+
+		case "address[]", "bool[]", "bytes[]":
+			return "", errors.New("given dynamic type is not supported yet")
 
 		default:
 			return "", errors.New("invalid argument type or argument type not supported")
 		}
 	}
 
-	return hexutil.Encode(sig) + args, nil
+	return hexutil.Encode(sig) + encodedArgs + dynamicData, nil
+}
+
+func splitArgs(argsString string) ([]string, error) {
+	var args []string
+	var current string
+	var depth int
+
+	for _, char := range argsString {
+		switch char {
+		case '[':
+			depth++
+			current += string(char)
+		case ']':
+			depth--
+			current += string(char)
+			if depth < 0 {
+				return nil, errors.New("mismatched brackets in arguments")
+			}
+		case ',':
+			if depth == 0 {
+				args = append(args, strings.TrimSpace(current))
+				current = ""
+			} else {
+				current += string(char)
+			}
+		default:
+			current += string(char)
+		}
+	}
+
+	if depth != 0 {
+		return nil, errors.New("mismatched brackets in arguments")
+	}
+
+	if current != "" {
+		args = append(args, strings.TrimSpace(current))
+	}
+
+	return args, nil
 }
 
 func GetMapPosition(key string, position string) string {
