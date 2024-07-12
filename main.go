@@ -1255,33 +1255,6 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 	// Keccak hash of function signature
 	sig := crypto.Keccak256Hash([]byte(functionSignature)).Bytes()[:4]
 
-	// data := [functionSignature, args]
-	// log.Print(data)
-	// first element is the function signature, and the rest are arguments
-	// keccak hash of function signature
-	// sig := crypto.Keccak256Hash([]byte(strings.TrimSpace(data[0]))).Bytes()[0:4]
-	// get the number of arguments from function signature
-	// take out substring between parenthesis "( )"
-	// argumentsTypesString := strings.TrimSpace(data[0][strings.Index(data[0], "(")+1 : strings.Index(data[0], ")")])
-	// var argumentsTypes []string
-	// if len(argumentsTypesString) != 0 {
-	// 	argumentsTypes = strings.Split(argumentsTypesString, ",")
-	// }
-	// log.Print(argumentsTypes, hexutil.Encode(sig))
-
-	// // check if number of arguments is equal to the number of arguments types in the function signature
-	// if len(argumentsTypes) != len(data)-1 {
-	// 	return "", errors.New("invalid number of arguments")
-	// }
-
-	// // trim whitespace for both data and argumentsTypes
-	// for i := 0; i < len(data); i++ {
-	// 	data[i] = strings.TrimSpace(data[i])
-	// 	if i < len(argumentsTypes) {
-	// 		argumentsTypes[i] = strings.TrimSpace(argumentsTypes[i])
-	// 	}
-	// }
-
 	// use switch case to determine the type of each argument and encode it accordingly
 	var encodedArgs string
 	var dynamicData string
