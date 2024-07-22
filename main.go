@@ -1244,7 +1244,7 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 	argTypes := strings.Split(functionSignature[openParenIndex+1:closeParenIndex], ",")
 	fmt.Print("argTypes", argTypes)
 	for i := range argTypes {
-		argTypes[i] = strings.TrimSpace(argTypes[i])
+		argTypes[i] = normalizeType(strings.TrimSpace(argTypes[i]))
 	}
 
 	// Check if the number of arguments matches the function signature
@@ -1252,8 +1252,11 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 		return "", errors.New("number of arguments doesn't match function signature")
 	}
 
+	// Recombine the normalized function signature
+	normalizedFunctionSignature := functionSignature[:openParenIndex+1] + strings.Join(argTypes, ",") + functionSignature[closeParenIndex:]
+
 	// Keccak hash of function signature
-	sig := crypto.Keccak256Hash([]byte(functionSignature)).Bytes()[:4]
+	sig := crypto.Keccak256Hash([]byte(normalizedFunctionSignature)).Bytes()[:4]
 
 	// use switch case to determine the type of each argument and encode it accordingly
 	var encodedArgs string
@@ -1318,28 +1321,27 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 			// increment dynamicOffset by length of hexData and length of hexLength
 			dynamicOffset += 64 // 32 bytes for length and 32 bytes for data
 
-		case "int[]", "uint256[]":
+		case "int[]", "int8[]", "int16[]", "int24[]", "int32[]", "int40[]", "int48[]", "int56[]", "int64[]", "int72[]", "int80[]", "int88[]", "int96[]", "int104[]", "int112[]", "int120[]", "int128[]", "int136[]", "int144[]", "int152[]", "int160[]", "int168[]", "int176[]", "int184[]", "int192[]", "int200[]", "int208[]", "int216[]", "int224[]", "int232[]", "int240[]", "int248[]", "int256[]", "uint[]", "uint8[]", "uint16[]", "uint24[]", "uint32[]", "uint40[]", "uint48[]", "uint56[]", "uint64[]", "uint72[]", "uint80[]", "uint88[]", "uint96[]", "uint104[]", "uint112[]", "uint120[]", "uint128[]", "uint136[]", "uint144[]", "uint152[]", "uint160[]", "uint168[]", "uint176[]", "uint184[]", "uint192[]", "uint200[]", "uint208[]", "uint216[]", "uint224[]", "uint232[]", "uint240[]", "uint248[]", "uint256[]", "address[]", "bool[]", "bytes[]", "bytes1[]", "bytes2[]", "bytes3[]", "bytes4[]", "bytes5[]", "bytes6[]", "bytes7[]", "bytes8[]", "bytes9[]", "bytes10[]", "bytes11[]", "bytes12[]", "bytes13[]", "bytes14[]", "bytes15[]", "bytes16[]", "bytes17[]", "bytes18[]", "bytes19[]", "bytes20[]", "bytes21[]", "bytes22[]", "bytes23[]", "bytes24[]", "bytes25[]", "bytes26[]", "bytes27[]", "bytes28[]", "bytes29[]", "bytes30[]", "bytes31[]", "bytes32[]":
+			// Handle any T[] type
+			baseType := strings.TrimSuffix(argTypes[i], "[]")
 			dynamicOffsetHex := fmt.Sprintf("%064x", dynamicOffset)
 			encodedArgs += dynamicOffsetHex
-			// Remove brackets and split the array at comma
-			arrayData := strings.Split(args[i][1:len(args[i])-1], ",")
-			// encode length of array in hex
-			// prefix with zeroes, the hex converted value to make it 32 bytes(64 characters) long
-			dynamicData += fmt.Sprintf("%064x", len(arrayData))
-			// encode each element of the array
-			for j := 0; j < len(arrayData); j++ {
-				hexNumber := decimalToHex(strings.TrimSpace(arrayData[j]))
-				if hexNumber == "" {
-					return "", errors.New("invalid number passed as argument " + arrayData[j] + ". It should be an integer")
-				}
-				// prefix hex with zeroes to make it 32 bytes long
-				dynamicData += strings.Repeat("0", 64-len(hexNumber[2:])) + (hexNumber[2:])
-			}
-			// increment dynamicOffset by length of arrayDataLength and length of arrayData
-			dynamicOffset += 32 + len(arrayData)*32
 
-		case "address[]", "bool[]", "bytes[]":
-			return "", errors.New("given dynamic type is not supported yet")
+			arrayData := strings.Split(args[i][1:len(args[i])-1], ",")
+
+			// Encode array length
+			dynamicData += fmt.Sprintf("%064x", len(arrayData))
+
+			// Encode each element of the array
+			for _, elem := range arrayData {
+				encodedElem, err := EncodeElement(baseType, elem)
+				if err != nil {
+					return "", err
+				}
+				dynamicData += encodedElem
+			}
+
+			dynamicOffset += 32 + len(arrayData)*32
 
 		default:
 			return "", errors.New("invalid argument type or argument type not supported")
@@ -1347,6 +1349,55 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 	}
 
 	return hexutil.Encode(sig) + encodedArgs + dynamicData, nil
+}
+
+func EncodeElement(elemType, value string) (string, error) {
+	switch elemType {
+	case "int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256", "uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256":
+		hexNumber := decimalToHex(value)
+		if hexNumber == "" {
+			return "", fmt.Errorf("invalid number: %s", value)
+		}
+		return fmt.Sprintf("%064s", hexNumber[2:]), nil
+	case "address":
+		if !common.IsHexAddress(value) {
+			return "", fmt.Errorf("invalid address: %s", value)
+		}
+		return fmt.Sprintf("%064s", value[2:]), nil
+	case "bool":
+		if value == "true" {
+			return strings.Repeat("0", 63) + "1", nil
+		} else if value == "false" {
+			return strings.Repeat("0", 64), nil
+		}
+		return "", fmt.Errorf("invalid boolean value: %s", value)
+	case "bytes1", "bytes2", "bytes3", "bytes4", "bytes5", "bytes6", "bytes7", "bytes8", "bytes9", "bytes10", "bytes11", "bytes12", "bytes13", "bytes14", "bytes15", "bytes16", "bytes17", "bytes18", "bytes19", "bytes20", "bytes21", "bytes22", "bytes23", "bytes24", "bytes25", "bytes26", "bytes27", "bytes28", "bytes29", "bytes30", "bytes31", "bytes32":
+		hexData := hexutil.Encode([]byte(value))
+		return hexData[2:] + strings.Repeat("0", 64-len(hexData[2:])), nil
+	case "string", "bytes":
+		utf8Bytes := []byte(value)
+		hexData := hexutil.Encode(utf8Bytes)
+		hexLength := fmt.Sprintf("%064x", len(hexData[2:])/2)
+		return hexLength + hexData[2:] + strings.Repeat("0", 64-len(hexData[2:])), nil
+	default:
+		return "", fmt.Errorf("unsupported element type: %s", elemType)
+	}
+}
+
+func normalizeType(t string) string {
+	if t == "uint" {
+		return "uint256"
+	}
+	if t == "int" {
+		return "int256"
+	}
+	if t == "uint[]" {
+		return "uint256[]"
+	}
+	if t == "int[]" {
+		return "int256[]"
+	}
+	return t
 }
 
 func splitArgs(argsString string) ([]string, error) {
