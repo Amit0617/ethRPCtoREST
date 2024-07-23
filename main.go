@@ -696,23 +696,23 @@ func sendTransaction(c *fiber.Ctx) error {
 	// send only non empty values in the request body from obj
 	objMap := make(map[string]interface{})
 	objMap["from"] = obj.From
-	// check if to is empty
+	// check if to isn't empty
 	if obj.To != nil {
 		objMap["to"] = obj.To
 	}
-	// check if gas is empty
+	// check if gas isn't empty
 	if obj.Gas != "" {
 		objMap["gas"] = obj.Gas
 	}
-	// check if gasPrice is empty
+	// check if gasPrice isn't empty
 	if obj.GasPrice != "" {
 		objMap["gasPrice"] = obj.GasPrice
 	}
-	// check if value is empty
+	// check if value isn't empty
 	if obj.Value != "" {
 		objMap["value"] = obj.Value
 	}
-	// check if nonce is empty
+	// check if nonce isn't empty
 	if obj.Nonce != "" {
 		objMap["nonce"] = obj.Nonce
 	}
