@@ -112,6 +112,9 @@ func main() {
 	app.Post("/eth/call", callContractAtBlock) // default block parameter is "latest"
 	app.Post("/eth/call/:identifier", callContractAtBlock)
 
+	// Utils endpoint
+	app.Post("/eth/encode", encodeFunctionSignature)
+
 	// TODO:(very low priority) also support shortform apis like /e/b/:identifier, /e/t/:hash, /e/t/b/:identifier/:index, /e/t/r/:hash, /e/u/b/:identifier/:index, /e/uc/b/:identifier
 	// TODO: I have an idea that is I will make docs of APIs also on the same server. Docs will came up in conditions like:
 	// - when user will hit the server on non-existent route.
@@ -121,6 +124,31 @@ func main() {
 }
 
 // Handlers
+func encodeFunctionSignature(c *fiber.Ctx) error {
+	// Parse the request body
+	obj := new(struct {
+		Data string `json:"data" xml:"data" form:"data"`
+	})
+
+	if err := c.BodyParser(obj); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Encode the function signature
+	encodedInput, err := EncodeFunctionSignature(obj.Data)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Return the encoded input
+	return c.JSON(fiber.Map{
+		"encodedInput": encodedInput,
+	})
+}
 
 // getBlockByIdentifier retrieves block information by block hash or block number and returns it as JSON.
 func getBlockByIdentifier(c *fiber.Ctx) error {
@@ -1221,7 +1249,7 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 	// Find the position of the first opening parenthesis
 	openParenIndex := strings.Index(functionSignatureWithArgs, "(")
 	if openParenIndex == -1 {
-		return "", errors.New("invalid function signature format")
+		return "", errors.New("invalid function signature format,open")
 	}
 
 	// Find the position of the last closing parenthesis
@@ -1233,18 +1261,26 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 	functionSignature := strings.TrimSpace(functionSignatureWithArgs[:closeParenIndex+1])
 	argsString := strings.TrimSpace(functionSignatureWithArgs[closeParenIndex+1:])
 
-	// Split the arguments string, respecting nested structures
-	args, err := splitArgs(strings.TrimLeft(argsString, ","))
-	fmt.Print(argsString, args, len(args))
-	if err != nil {
-		return "", err
+	// Handle the case where there are no arguments
+	var args []string
+	var err error
+	if argsString == "" {
+		args = []string{}
+	} else {
+		args, err = splitArgs(strings.TrimLeft(argsString, ","))
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// Extract argument types from the function signature
-	argTypes := strings.Split(functionSignature[openParenIndex+1:closeParenIndex], ",")
-	fmt.Print("argTypes", argTypes)
-	for i := range argTypes {
-		argTypes[i] = normalizeType(strings.TrimSpace(argTypes[i]))
+	argTypesString := functionSignature[openParenIndex+1 : closeParenIndex]
+	var argTypes []string
+	if argTypesString != "" {
+		argTypes = strings.Split(argTypesString, ",")
+		for i := range argTypes {
+			argTypes[i] = normalizeType(strings.TrimSpace(argTypes[i]))
+		}
 	}
 
 	// Check if the number of arguments matches the function signature
@@ -1305,15 +1341,12 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 		case "string", "bytes":
 			dynamicOffsetHex := fmt.Sprintf("%064x", dynamicOffset)
 			encodedArgs += dynamicOffsetHex
-			fmt.Print("encodedArgs", encodedArgs)
 			// convert string to utf-8 bytes
 			utf8Bytes := []byte(args[i])
 			// convert utf-8 bytes to hex
 			hexData := hexutil.Encode(utf8Bytes)
-			fmt.Print("hexData", hexData, "\n")
 			// encode length of hexData in hex
 			hexLength := fmt.Sprintf("%064x", len(hexData[2:])/2)
-			fmt.Print("hexLength", hexLength, "\n")
 			// prefix with zeroes to make it 32 bytes long
 			dynamicData += hexLength
 			// postfix with zeroes to make it 32 bytes long
