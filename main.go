@@ -1357,8 +1357,7 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 
 		case "int[]", "int8[]", "int16[]", "int24[]", "int32[]", "int40[]", "int48[]", "int56[]", "int64[]", "int72[]", "int80[]", "int88[]", "int96[]", "int104[]", "int112[]", "int120[]", "int128[]", "int136[]", "int144[]", "int152[]", "int160[]", "int168[]", "int176[]", "int184[]", "int192[]", "int200[]", "int208[]", "int216[]", "int224[]", "int232[]", "int240[]", "int248[]", "int256[]", "uint[]", "uint8[]", "uint16[]", "uint24[]", "uint32[]", "uint40[]", "uint48[]", "uint56[]", "uint64[]", "uint72[]", "uint80[]", "uint88[]", "uint96[]", "uint104[]", "uint112[]", "uint120[]", "uint128[]", "uint136[]", "uint144[]", "uint152[]", "uint160[]", "uint168[]", "uint176[]", "uint184[]", "uint192[]", "uint200[]", "uint208[]", "uint216[]", "uint224[]", "uint232[]", "uint240[]", "uint248[]", "uint256[]",
 			"address[]", "bool[]",
-			"bytes[]", "bytes1[]", "bytes2[]", "bytes3[]", "bytes4[]", "bytes5[]", "bytes6[]", "bytes7[]", "bytes8[]", "bytes9[]", "bytes10[]", "bytes11[]", "bytes12[]", "bytes13[]", "bytes14[]", "bytes15[]", "bytes16[]", "bytes17[]", "bytes18[]", "bytes19[]", "bytes20[]", "bytes21[]", "bytes22[]", "bytes23[]", "bytes24[]", "bytes25[]", "bytes26[]", "bytes27[]", "bytes28[]", "bytes29[]", "bytes30[]", "bytes31[]", "bytes32[]",
-			"string[]":
+			"bytes1[]", "bytes2[]", "bytes3[]", "bytes4[]", "bytes5[]", "bytes6[]", "bytes7[]", "bytes8[]", "bytes9[]", "bytes10[]", "bytes11[]", "bytes12[]", "bytes13[]", "bytes14[]", "bytes15[]", "bytes16[]", "bytes17[]", "bytes18[]", "bytes19[]", "bytes20[]", "bytes21[]", "bytes22[]", "bytes23[]", "bytes24[]", "bytes25[]", "bytes26[]", "bytes27[]", "bytes28[]", "bytes29[]", "bytes30[]", "bytes31[]", "bytes32[]":
 			// Handle any T[] type
 			baseType := strings.TrimSuffix(argTypes[i], "[]")
 			dynamicOffsetHex := fmt.Sprintf("%064x", dynamicOffset)
@@ -1371,6 +1370,37 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 
 			// Encode each element of the array
 			for _, elem := range arrayData {
+				encodedElem, err := EncodeElement(baseType, elem)
+				if err != nil {
+					return "", err
+				}
+				dynamicData += encodedElem
+			}
+
+			dynamicOffset += 32 + len(arrayData)*32
+
+		case "bytes[]", "string[]":
+			// Handle any T[] type where T itself is also dynamic
+			baseType := strings.TrimSuffix(argTypes[i], "[]")
+			dynamicOffsetHex := fmt.Sprintf("%064x", dynamicOffset)
+			encodedArgs += dynamicOffsetHex
+
+			arrayData := strings.Split(args[i][1:len(args[i])-1], ",")
+
+			// Encode array length
+			encodedArgs += fmt.Sprintf("%064x", len(arrayData))
+
+			// Encode offset for the first element
+			dynamicOffset = 32 * len(arrayData)
+			encodedArgs += fmt.Sprintf("%064x", dynamicOffset)
+
+			// Encode each element of the array
+			for i, elem := range arrayData {
+				// add offset for each element
+				if i < len(arrayData)-1 {
+					dynamicOffset += 32 + 32 // 32 bytes for length of string or bytes and 32 bytes for encoded data
+					encodedArgs += fmt.Sprintf("%064x", dynamicOffset)
+				}
 				encodedElem, err := EncodeElement(baseType, elem)
 				if err != nil {
 					return "", err
@@ -1397,26 +1427,36 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 					return "", fmt.Errorf("array size mismatch for type %s", argTypes[i])
 				}
 
-				// Encode array length
-				encodedArgs += fmt.Sprintf("%064x", len(arrayElements))
-				// print(len(arrayElements))
-				// offset for dynamic data for first element
-				dynamicOffset := 32 * len(arrayElements) // starting offset for element data
-				encodedArgs += fmt.Sprintf("%064x", dynamicOffset)
+				// Encode offset to the start of the array data
+				arrayOffset := fmt.Sprintf("%064x", dynamicOffset)
 
-				// Encode each element
+				var arrayData string
+				var arrayElementsOffset string
+
+				// Encode offset of the first element
+				elementOffset := 32 * len(arrayElements)
+				arrayElementsOffset += fmt.Sprintf("%064x", elementOffset)
+
 				for i, elem := range arrayElements {
+					// add offset for each element
+					if i < len(arrayData)-1 {
+						elementOffset += 32 + 32 // 32 bytes for length of string or bytes and 32 bytes for encoded data
+						arrayElementsOffset += fmt.Sprintf("%064x", elementOffset)
+					}
 					encodedElem, err := EncodeElement(baseType, strings.TrimSpace(elem))
 					if err != nil {
 						return "", err
 					}
-					dynamicData += encodedElem
-					// one offset is already added for the first element location
-					if i < len(arrayElements)-1 {
-						dynamicOffset += 64 // update offset for next element(32 bytes for length and 32 bytes for data)
-						encodedArgs += fmt.Sprintf("%064x", dynamicOffset)
-					}
+					print("encodedElem", encodedElem, "\n")
+					arrayData += encodedElem
 				}
+
+				encodedArgs += arrayOffset
+
+				dynamicData += arrayElementsOffset
+				dynamicData += arrayData
+
+				dynamicOffset += len(arrayData+arrayElementsOffset) / 2
 			} else {
 				return "", errors.New("invalid argument type or argument type not supported")
 			}

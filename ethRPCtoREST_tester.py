@@ -58,6 +58,7 @@ test_cases = [
     ("bar(bytes3[2])", ["abc", "def"]),
     ("sam(bytes)", ["dave"]),
     ("same(string[2])", ['[Hello,World]']),
+    ("sam(string[3],string[2],string[1])", ['[Hello,World,Hello]', '[Hello,World]', '[Hello]']),
     ("setStringArray(string[])", ['[Hello,World]']),
     ("sam(bytes,bool,uint256[])", ["dave", "true", "[1,2,3]"]),
     ("setInt(int256)", ["-123456789"]),
