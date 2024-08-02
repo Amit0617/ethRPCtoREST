@@ -147,6 +147,7 @@ func main() {
 	app.Get("/eth/code/:address/:identifier", getCodeOfAddressAtBlock)
 	app.Post("/eth/call", callContractAtBlock) // default block parameter is "latest"
 	app.Post("/eth/call/:identifier", callContractAtBlock)
+	app.Post("/eth/estimategas", estimateGas) // default block parameter is "latest"
 
 	// Utils endpoint
 	app.Post("/eth/encode", encodeFunctionSignature)
@@ -1269,6 +1270,57 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 	err := rpcClient.CallContext(ctx, &result, "eth_call", objMap, hexNumber)
 	if err != nil {
 		log.Print("Error calling contract:", err)
+	}
+	return c.JSON(result)
+}
+func estimateGas(c *fiber.Ctx) error {
+	// get the request body
+	obj := new(RequestBody)
+
+	if err := c.BodyParser(obj); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	// send only non empty values in the request body from obj
+	objMap := map[string]interface{}{
+		"from": obj.From,
+		"to":   obj.To,
+	}
+	// check if gas is empty
+	if obj.Gas != "" {
+		objMap["gas"] = obj.Gas
+	}
+	// check if gasPrice is empty
+	if obj.GasPrice != "" {
+		objMap["gasPrice"] = obj.GasPrice
+	}
+	// check if value is empty
+	if obj.Value != "" {
+		objMap["value"] = obj.Value
+	}
+	if obj.Input != "" {
+		objMap["data"] = obj.Input
+	}
+
+	// convert gas, gasPrice, value and nonce to hex from decimal
+	// gas = decimalToHex(gas)
+	// gasPrice = decimal
+	// value = decimalToHex(value)
+	// nonce = decimalToHex(nonce)
+
+	// // reconstruct the request body
+	// obj.Gas = gas
+	// obj.GasPrice = gasPrice
+	// obj.Value = value
+	// obj.Nonce = nonce
+
+	var ctx = context.Background()
+	var result string
+	err := rpcClient.CallContext(ctx, &result, "eth_estimateGas", objMap)
+	if err != nil {
+		log.Print("Error estimating gas:", err)
 	}
 	return c.JSON(result)
 }
