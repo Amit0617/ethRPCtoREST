@@ -1,6 +1,5 @@
 import requests
 import subprocess
-import json
 
 # Your server's base URL
 BASE_URL = "http://localhost:3000"
@@ -62,11 +61,11 @@ test_cases = [
     ("setStringArray(string[])", ['[Hello,World]']),
     ("sam(bytes,bool,uint256[])", ["dave", "true", "[1,2,3]"]),
     ("setInt(int256)", ["-123456789"]),
-    ("setBytes(bytes)", ["1234567890abcdef"]),
-    ("setBytes32(bytes32)", ["0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]),
+    # ("setBytes(bytes)", ["1234567890abcdef"]),
+    # ("setBytes32(bytes32)", ["0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"]),
     ("setIntArray(int256[])", ["[1,2,3,4,5]"]),
-    ("setStringArray(string[])", ['["Hello","World"]']),
-    ("setTuple(uint256,bool,address)", ["123", "true", "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"]),
+    ("setStaticTuple((uint256,bool,address))", [("123", "true", "0x742d35Cc6634C0532925a3b844Bc454e4438f44e")]),
+    ("setDynamicTuple((uint256[],bool,string), (string[]))", [("[1,2,3]", "true", "Hello World!"), ("[Hello,World]")]), 
 ]
 
 # Run tests

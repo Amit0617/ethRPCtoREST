@@ -1247,24 +1247,25 @@ func callContractAtDecimalNumber(c *fiber.Ctx, number string) error {
 }
 
 func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
+	functionSignature, argTypes, argsString, err := separateSignatureAndArgs(functionSignatureWithArgs)
+	if err != nil {
+		return "", err
+	}
 	// Find the position of the first opening parenthesis
-	openParenIndex := strings.Index(functionSignatureWithArgs, "(")
+	openParenIndex := strings.Index(functionSignature, "(")
 	if openParenIndex == -1 {
 		return "", errors.New("invalid function signature format,open")
 	}
 
 	// Find the position of the last closing parenthesis
-	closeParenIndex := strings.LastIndex(functionSignatureWithArgs, ")")
+	closeParenIndex := strings.LastIndex(functionSignature, ")")
 	if closeParenIndex == -1 || closeParenIndex < openParenIndex {
 		return "", errors.New("invalid function signature format")
 	}
-	// Extract the function name and arguments types
-	functionSignature := strings.TrimSpace(functionSignatureWithArgs[:closeParenIndex+1])
-	argsString := strings.TrimSpace(functionSignatureWithArgs[closeParenIndex+1:])
 
 	// Handle the case where there are no arguments
 	var args []string
-	var err error
+	// var err error
 	if argsString == "" {
 		args = []string{}
 	} else {
@@ -1274,14 +1275,8 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 		}
 	}
 
-	// Extract argument types from the function signature
-	argTypesString := functionSignature[openParenIndex+1 : closeParenIndex]
-	var argTypes []string
-	if argTypesString != "" {
-		argTypes = strings.Split(argTypesString, ",")
-		for i := range argTypes {
-			argTypes[i] = normalizeType(strings.TrimSpace(argTypes[i]))
-		}
+	for i := range argTypes {
+		argTypes[i] = normalizeType(strings.TrimSpace(argTypes[i]))
 	}
 
 	// Check if the number of arguments matches the function signature
@@ -1290,7 +1285,7 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 	}
 
 	// Recombine the normalized function signature
-	normalizedFunctionSignature := functionSignature[:openParenIndex+1] + strings.Join(argTypes, ",") + functionSignature[closeParenIndex:]
+	normalizedFunctionSignature := functionSignature[:openParenIndex+1] + strings.Join(argTypes, ",") + ")"
 
 	// Keccak hash of function signature
 	sig := crypto.Keccak256Hash([]byte(normalizedFunctionSignature)).Bytes()[:4]
@@ -1447,7 +1442,6 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 					if err != nil {
 						return "", err
 					}
-					print("encodedElem", encodedElem, "\n")
 					arrayData += encodedElem
 				}
 
@@ -1457,6 +1451,57 @@ func EncodeFunctionSignature(functionSignatureWithArgs string) (string, error) {
 				dynamicData += arrayData
 
 				dynamicOffset += len(arrayData+arrayElementsOffset) / 2
+			} else if strings.HasPrefix(argTypes[i], "(") && strings.HasSuffix(argTypes[i], ")") {
+				// Handle tuple types
+				// Extract the tuple types
+				tupleTypes, err := splitTuple(argTypes[i])
+				if err != nil {
+					return "", err
+				}
+				tupleArgs, err := splitTuple(args[i])
+				if err != nil {
+					return "", err
+				}
+				if len(tupleTypes) != len(tupleArgs) {
+					return "", errors.New("tuple size mismatch")
+				}
+
+				// Encode offset to the start of the tuple data
+				tupleOffset := fmt.Sprintf("%064x", dynamicOffset)
+				encodedArgs += tupleOffset
+				var tupleData string
+				var elementOffset int
+				dynamicCounter := 0
+
+				for i, elem := range tupleArgs {
+					if isStaticType(tupleTypes[i]) {
+						encodedElem, err := EncodeElement(tupleTypes[i], strings.TrimSpace(elem))
+						if err != nil {
+							return "", err
+						}
+						dynamicData += encodedElem
+					} else {
+						// Encode offset of the first element
+						if dynamicCounter == 0 {
+							elementOffset = 32 * (len(tupleArgs) - i)
+							dynamicData += fmt.Sprintf("%064x", elementOffset)
+						} else if i < len(tupleArgs) {
+							elementOffset += 32 + 32 // 32 bytes for length of string or bytes and 32 bytes for encoded data
+							dynamicData += fmt.Sprintf("%064x", elementOffset)
+						}
+						encodedElem, err := EncodeElement(tupleTypes[i], strings.TrimSpace(elem))
+						if err != nil {
+							return "", err
+						}
+						tupleData += encodedElem
+						dynamicCounter++
+					}
+				}
+
+				dynamicData += tupleData
+
+				dynamicOffset += len(dynamicData) / 2
+
 			} else {
 				return "", errors.New("invalid argument type or argument type not supported")
 			}
@@ -1494,45 +1539,243 @@ func EncodeElement(elemType, value string) (string, error) {
 		hexData := hexutil.Encode(utf8Bytes)
 		hexLength := fmt.Sprintf("%064x", len(hexData[2:])/2)
 		return hexLength + hexData[2:] + strings.Repeat("0", 64-len(hexData[2:])), nil
+	case "string[]", "bytes[]":
+		args := strings.Split(value[1:len(value)-1], ",")
+		// Encode array length
+		arrayLengthHex := fmt.Sprintf("%064x", len(args))
+
+		// Encode offset for first element
+		offset := 32 * len(args)
+		offsetHex := fmt.Sprintf("%064x", offset)
+
+		// Encode each element of the array
+		var encodedArgs string
+		for i, arg := range args {
+			arg = strings.TrimSpace(arg)
+			encodedElem, err := EncodeElement(elemType[:len(elemType)-2], arg)
+			if err != nil {
+				return "", err
+			}
+			encodedArgs += encodedElem
+			// add offset for each element
+			if i < len(args)-1 {
+				offset += 32 + 32 // 32 bytes for length of string or bytes and 32 bytes for encoded data
+				offsetHex += fmt.Sprintf("%064x", offset)
+			}
+		}
+
+		return arrayLengthHex + offsetHex + encodedArgs, nil
+
 	default:
 		return "", fmt.Errorf("unsupported element type: %s", elemType)
 	}
 }
 
-func normalizeType(t string) string {
-	if t == "uint" {
-		return "uint256"
+func separateSignatureAndArgs(input string) (string, []string, string, error) {
+	// Find the position of the first opening parenthesis
+	firstOpenParen := strings.Index(input, "(")
+	if firstOpenParen == -1 {
+		return "", nil, "", errors.New("invalid input: missing opening parenthesis")
 	}
-	if t == "int" {
+
+	// Initialize counters for nested parentheses
+	openCount := 0
+	closeCount := 0
+
+	// Find the end of the function signature
+	signatureEnd := -1
+	for i := firstOpenParen; i < len(input); i++ {
+		if input[i] == '(' {
+			openCount++
+		} else if input[i] == ')' {
+			closeCount++
+		}
+
+		if openCount == closeCount {
+			signatureEnd = i
+			break
+		}
+	}
+
+	if signatureEnd == -1 {
+		return "", nil, "", errors.New("invalid input: unmatched parentheses in function signature")
+	}
+
+	// Extract function signature and arguments
+	functionSignature := strings.TrimSpace(input[:signatureEnd+1])
+	args := strings.TrimSpace(input[signatureEnd+1:])
+
+	// Remove leading comma from args if present
+	args = strings.TrimPrefix(args, ",")
+
+	// Extract argument types
+	argTypes, err := extractArgTypes(functionSignature)
+	if err != nil {
+		return "", nil, "", err
+	}
+
+	return functionSignature, argTypes, args, nil
+}
+
+func extractArgTypes(functionSignature string) ([]string, error) {
+	// Find the position of the first opening parenthesis
+	openParenIndex := strings.Index(functionSignature, "(")
+	if openParenIndex == -1 {
+		return nil, errors.New("invalid function signature: missing opening parenthesis")
+	}
+
+	// Find the position of the last closing parenthesis
+	closeParenIndex := strings.LastIndex(functionSignature, ")")
+	if closeParenIndex == -1 || closeParenIndex < openParenIndex {
+		return nil, errors.New("invalid function signature: missing or misplaced closing parenthesis")
+	}
+
+	// Extract the argument types string
+	argTypesString := functionSignature[openParenIndex+1 : closeParenIndex]
+
+	// Split the argument types
+	var argTypes []string
+	var currentType string
+	parenCount := 0
+
+	for _, char := range argTypesString {
+		switch char {
+		case '(':
+			parenCount++
+			currentType += string(char)
+		case ')':
+			parenCount--
+			currentType += string(char)
+			if parenCount == 0 && len(currentType) > 0 {
+				argTypes = append(argTypes, strings.TrimSpace(currentType))
+				currentType = ""
+			}
+		case ',':
+			if parenCount == 0 {
+				if len(currentType) > 0 {
+					argTypes = append(argTypes, strings.TrimSpace(currentType))
+					currentType = ""
+				}
+			} else {
+				currentType += string(char)
+			}
+		default:
+			currentType += string(char)
+		}
+	}
+
+	if len(currentType) > 0 {
+		argTypes = append(argTypes, strings.TrimSpace(currentType))
+	}
+
+	return argTypes, nil
+}
+
+func isStaticType(typ string) bool {
+	// Remove any array brackets and check if it's a fixed-size array
+	if strings.Contains(typ, "[") {
+		parts := strings.Split(typ, "[")
+		if len(parts) != 2 {
+			return false // Invalid type format
+		}
+		if parts[1] == "]" {
+			return false // Dynamic-sized array
+		}
+		// Check if the base type is static
+		return isStaticType(parts[0])
+	}
+
+	// List of static types
+	staticTypes := []string{
+		"int", "int8", "int16", "int24", "int32", "int40", "int48", "int56", "int64", "int72", "int80", "int88", "int96", "int104", "int112", "int120", "int128", "int136", "int144", "int152", "int160", "int168", "int176", "int184", "int192", "int200", "int208", "int216", "int224", "int232", "int240", "int248", "int256",
+		"uint", "uint8", "uint16", "uint24", "uint32", "uint40", "uint48", "uint56", "uint64", "uint72", "uint80", "uint88", "uint96", "uint104", "uint112", "uint120", "uint128", "uint136", "uint144", "uint152", "uint160", "uint168", "uint176", "uint184", "uint192", "uint200", "uint208", "uint216", "uint224", "uint232", "uint240", "uint248", "uint256",
+		"bool",
+		"address",
+		"bytes1", "bytes2", "bytes3", "bytes4", "bytes5", "bytes6", "bytes7", "bytes8",
+		"bytes9", "bytes10", "bytes11", "bytes12", "bytes13", "bytes14", "bytes15", "bytes16",
+		"bytes17", "bytes18", "bytes19", "bytes20", "bytes21", "bytes22", "bytes23", "bytes24",
+		"bytes25", "bytes26", "bytes27", "bytes28", "bytes29", "bytes30", "bytes31", "bytes32",
+	}
+
+	// Check if the type is in the list of static types
+	for _, staticType := range staticTypes {
+		if typ == staticType {
+			return true
+		}
+	}
+
+	// Check if it's a tuple type
+	if strings.HasPrefix(typ, "(") && strings.HasSuffix(typ, ")") {
+		// Remove parentheses and split into component types
+		innerTypes := strings.Split(typ[1:len(typ)-1], ",")
+		// Check if all component types are static
+		for _, innerType := range innerTypes {
+			if !isStaticType(strings.TrimSpace(innerType)) {
+				return false
+			}
+		}
+		return true
+	}
+
+	// If we've reached here, it's not a static type
+	return false
+}
+
+func normalizeType(t string) string {
+	// Handle arrays
+	if strings.HasSuffix(t, "[]") {
+		return normalizeType(strings.TrimSuffix(t, "[]")) + "[]"
+	}
+
+	// Handle tuples
+	if strings.HasPrefix(t, "(") && strings.HasSuffix(t, ")") {
+		inner := t[1 : len(t)-1]
+		types := strings.Split(inner, ",")
+		for i, typ := range types {
+			types[i] = normalizeType(strings.TrimSpace(typ))
+		}
+		return "(" + strings.Join(types, ",") + ")"
+	}
+
+	// Handle basic types
+	switch t {
+	case "uint":
+		return "uint256"
+	case "int":
 		return "int256"
 	}
-	if t == "uint[]" {
-		return "uint256[]"
-	}
-	if t == "int[]" {
-		return "int256[]"
-	}
+
+	// Return the type as-is for other cases
 	return t
 }
 
 func splitArgs(argsString string) ([]string, error) {
 	var args []string
 	var current string
-	var depth int
+	var squareDepth, parenDepth int
 
 	for _, char := range argsString {
 		switch char {
 		case '[':
-			depth++
+			squareDepth++
 			current += string(char)
 		case ']':
-			depth--
+			squareDepth--
 			current += string(char)
-			if depth < 0 {
-				return nil, errors.New("mismatched brackets in arguments")
+			if squareDepth < 0 {
+				return nil, errors.New("mismatched square brackets in arguments")
+			}
+		case '(':
+			parenDepth++
+			current += string(char)
+		case ')':
+			parenDepth--
+			current += string(char)
+			if parenDepth < 0 {
+				return nil, errors.New("mismatched parentheses in arguments")
 			}
 		case ',':
-			if depth == 0 {
+			if squareDepth == 0 && parenDepth == 0 {
 				args = append(args, strings.TrimSpace(current))
 				current = ""
 			} else {
@@ -1543,8 +1786,71 @@ func splitArgs(argsString string) ([]string, error) {
 		}
 	}
 
-	if depth != 0 {
-		return nil, errors.New("mismatched brackets in arguments")
+	if squareDepth != 0 {
+		return nil, errors.New("mismatched square brackets in arguments")
+	}
+
+	if parenDepth != 0 {
+		return nil, errors.New("mismatched parentheses in arguments")
+	}
+
+	if current != "" {
+		args = append(args, strings.TrimSpace(current))
+	}
+
+	return args, nil
+}
+
+func splitTuple(tupleString string) ([]string, error) {
+	// Remove outer parentheses
+	tupleString = strings.TrimSpace(tupleString)
+	if !strings.HasPrefix(tupleString, "(") || !strings.HasSuffix(tupleString, ")") {
+		return nil, fmt.Errorf("invalid tuple string: %s", tupleString)
+	}
+	tupleString = tupleString[1 : len(tupleString)-1]
+
+	var args []string
+	var current string
+	var squareDepth, parenDepth int
+
+	for _, char := range tupleString {
+		switch char {
+		case '[':
+			squareDepth++
+			current += string(char)
+		case ']':
+			squareDepth--
+			current += string(char)
+			if squareDepth < 0 {
+				return nil, fmt.Errorf("mismatched square brackets in tuple: %s", tupleString)
+			}
+		case '(':
+			parenDepth++
+			current += string(char)
+		case ')':
+			parenDepth--
+			current += string(char)
+			if parenDepth < 0 {
+				return nil, fmt.Errorf("mismatched parentheses in tuple: %s", tupleString)
+			}
+		case ',':
+			if squareDepth == 0 && parenDepth == 0 {
+				args = append(args, strings.TrimSpace(current))
+				current = ""
+			} else {
+				current += string(char)
+			}
+		default:
+			current += string(char)
+		}
+	}
+
+	if squareDepth != 0 {
+		return nil, fmt.Errorf("mismatched square brackets in tuple: %s", tupleString)
+	}
+
+	if parenDepth != 0 {
+		return nil, fmt.Errorf("mismatched parentheses in tuple: %s", tupleString)
 	}
 
 	if current != "" {
