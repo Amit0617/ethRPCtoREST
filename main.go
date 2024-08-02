@@ -59,6 +59,41 @@ type ModifiedRequestBody struct {
 	Nonce string          `json:"nonce,omitempty"`
 }
 
+type rpcTransaction struct {
+	BlockHash        *common.Hash    `json:"blockHash,omitempty"`
+	BlockNumber      string          `json:"blockNumber,omitempty"`
+	From             *common.Address `json:"from,omitempty"`
+	Gas              string          `json:"gas,omitempty"`
+	GasPrice         string          `json:"gasPrice,omitempty"`
+	Hash             *common.Hash    `json:"hash,omitempty"`
+	Input            *string         `json:"input,omitempty"`
+	Nonce            string          `json:"nonce,omitempty"`
+	To               *common.Address `json:"to,omitempty"`
+	TransactionIndex string          `json:"transactionIndex,omitempty"`
+	Value            string          `json:"value,omitempty"`
+	V                string          `json:"v,omitempty"`
+	R                *string         `json:"r,omitempty"`
+	S                *string         `json:"s,omitempty"`
+}
+
+type txReceipt struct {
+	TxHash            *common.Hash    `json:"transactionHash,omitempty"`
+	TxIndex           string          `json:"transactionIndex,omitempty"`
+	BlockHash         *common.Hash    `json:"blockHash,omitempty"`
+	BlockNumber       string          `json:"blockNumber,omitempty"`
+	From              *common.Address `json:"from,omitempty"`
+	To                *common.Address `json:"to,omitempty"`
+	CumulativeGasUsed string          `json:"cumulativeGasUsed,omitempty"`
+	EffectiveGasPrice string          `json:"effectiveGasPrice,omitempty"`
+	GasUsed           string          `json:"gasUsed,omitempty"`
+	ContractAddress   *common.Address `json:"contractAddress,omitempty"`
+	Logs              []types.Log     `json:"logs,omitempty"`
+	Bloom             *types.Bloom    `json:"logsBloom,omitempty"`
+	Type              string          `json:"type,omitempty"`
+	Root              *common.Hash    `json:"root,omitempty"`
+	Status            string          `json:"status,omitempty"`
+}
+
 func main() {
 	app := fiber.New()
 	app.Use(recover.New())
@@ -241,17 +276,15 @@ func getTransactionByHash(c *fiber.Ctx) error {
 	if hashRegex.MatchString(hash) {
 		transactionHash := common.HexToHash(hash)
 		log.Println(transactionHash)
-		transaction, isPending, err := client.TransactionByHash(context.Background(), transactionHash)
+		var ctx = context.Background()
+		var transaction *rpcTransaction
+		err := rpcClient.CallContext(ctx, &transaction, "eth_getTransactionByHash", transactionHash)
 		if err != nil {
 			log.Print("Error fetching transaction info:", err)
 		}
-		if isPending {
-			// Return 202 Accepted status code
-			return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
-				"info": "Transaction isn't mined yet",
-			})
-		}
-		return c.JSON(transaction)
+		return c.JSON(
+			StringifyTransaction(
+				transaction))
 	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid transaction hash",
@@ -304,17 +337,6 @@ func getTransactionByIdentifierAndIndex(c *fiber.Ctx) error {
 	}
 }
 
-type txExtraInfo struct {
-	BlockNumber *string         `json:"blockNumber,omitempty"`
-	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
-	From        *common.Address `json:"from,omitempty"`
-}
-
-type rpcTransaction struct {
-	tx *types.Transaction
-	txExtraInfo
-}
-
 func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters string, index string) error {
 
 	var json *rpcTransaction
@@ -333,7 +355,7 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 		if err != nil {
 			log.Print("Error fetching transaction info:", err)
 		}
-		return c.JSON(json)
+		return c.JSON(StringifyTransaction(json))
 
 	} else {
 		number := numberOrDefaultParameters
@@ -353,18 +375,21 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 		if err != nil {
 			log.Print("Error fetching transaction info:", err)
 		}
-		return c.JSON(json)
+		return c.JSON(StringifyTransaction(json))
 	}
 }
 
 func getTransactionByBlockHashAndIndex(c *fiber.Ctx, hash string, index uint) error {
 	blockHash := common.HexToHash(hash)
 	log.Println(blockHash)
-	block, err := client.TransactionInBlock(context.Background(), blockHash, index)
+	// block, err := client.TransactionInBlock(context.Background(), blockHash, index)
+	var ctx = context.Background()
+	var json *rpcTransaction
+	err := rpcClient.CallContext(ctx, &json, "eth_getTransactionByBlockHashAndIndex", blockHash, index)
 	if err != nil {
 		log.Print("Error fetching block info:", err)
 	}
-	return c.JSON(block)
+	return c.JSON(StringifyTransaction(json))
 }
 
 // getTransactionReceiptByHash retrieves transaction receipt by hash and returns it as JSON.
@@ -374,7 +399,9 @@ func getTransactionReceiptByHash(c *fiber.Ctx) error {
 	if hashRegex.MatchString(hash) {
 		transactionHash := common.HexToHash(hash)
 		log.Println(transactionHash)
-		transactionReceipt, err := client.TransactionReceipt(context.Background(), transactionHash)
+		var ctx = context.Background()
+		var transactionReceipt txReceipt
+		err := rpcClient.CallContext(ctx, &transactionReceipt, "eth_getTransactionReceipt", transactionHash)
 		if err != nil {
 			log.Print("Error fetching transaction info:", err)
 		}
@@ -1935,4 +1962,66 @@ func StringifyCount(blockTransactionCount string) *big.Int {
 		return nil
 	}
 	return finalTransactionCount
+}
+
+// StringifyTransaction converts given transaction and returns stringified values as map
+func StringifyTransaction(transaction *rpcTransaction) map[string]interface{} {
+	blockNumberDecimal, _ := new(big.Int).SetString(transaction.BlockNumber[2:], 16)
+	gasDecimal, _ := new(big.Int).SetString(transaction.Gas[2:], 16)
+	gasPriceDecimal, _ := new(big.Int).SetString(transaction.GasPrice[2:], 16)
+	nonceDecimal, _ := new(big.Int).SetString(transaction.Nonce[2:], 16)
+	transactionIndexDecimal, _ := new(big.Int).SetString(transaction.TransactionIndex[2:], 16)
+	valueDecimal, _ := new(big.Int).SetString(transaction.Value[2:], 16)
+	vDecimal, _ := new(big.Int).SetString(transaction.V[2:], 16)
+
+	// return a map of all items in struct
+	stringified := map[string]interface{}{
+		"blockHash":        transaction.BlockHash.String(),
+		"blockNumber":      blockNumberDecimal,
+		"from":             transaction.From,
+		"gas":              gasDecimal,
+		"gasPrice":         gasPriceDecimal,
+		"hash":             transaction.Hash,
+		"input":            transaction.Input,
+		"nonce":            nonceDecimal,
+		"to":               transaction.To,
+		"transactionIndex": transactionIndexDecimal,
+		"value":            valueDecimal,
+		"v":                vDecimal,
+		"r":                transaction.R,
+		"s":                transaction.S,
+	}
+
+	return stringified
+}
+
+// StringifyReceipt converts given transaction receipt and returns stringified values as map
+func StringifyReceipt(receipt txReceipt) map[string]interface{} {
+
+	blockNumberDecimal, _ := new(big.Int).SetString(receipt.BlockNumber[2:], 16)
+	cumulativeGasDecimal, _ := new(big.Int).SetString(receipt.CumulativeGasUsed[2:], 16)
+	gasUsedDecimal, _ := new(big.Int).SetString(receipt.GasUsed[2:], 16)
+	effectiveGasDecimal, _ := new(big.Int).SetString(receipt.EffectiveGasPrice[2:], 16)
+	transactionIndex, _ := new(big.Int).SetString(receipt.TxIndex[2:], 16)
+
+	// return a map of all items in struct
+	stringified := map[string]interface{}{
+		"blockHash":         receipt.BlockHash.String(),
+		"blockNumber":       blockNumberDecimal,
+		"contractAddress":   receipt.ContractAddress.String(),
+		"cumulativeGasUsed": cumulativeGasDecimal,
+		"effectiveGasPrice": effectiveGasDecimal,
+		"gasUsed":           gasUsedDecimal,
+		"status":            receipt.Status,
+		"transactionHash":   receipt.TxHash,
+		"transactionIndex":  transactionIndex,
+		"logs":              receipt.Logs,
+		"logsBloom":         receipt.Bloom,
+		"from":              receipt.From,
+		"to":                receipt.To,
+		"root":              receipt.Root,
+		"type":              receipt.Type,
+	}
+
+	return stringified
 }
