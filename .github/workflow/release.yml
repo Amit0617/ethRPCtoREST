@@ -21,6 +21,7 @@ jobs:
 
       - name: Build binary
         run: |
+          go mod tidy
           go build -o ./ethRPCtoREST ./main.go
 
       - name: Create tarball
