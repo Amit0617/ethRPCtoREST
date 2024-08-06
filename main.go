@@ -607,13 +607,10 @@ func getBlockTransactionCountByIdentifier(c *fiber.Ctx) error {
 
 // getBlockTransactionCountByBlockHash retrieves block transaction count by block hash and returns it as JSON.
 func getBlockTransactionCountByBlockHash(c *fiber.Ctx, hash string) error {
-	blockHash := common.HexToHash(hash)
-	log.Println(blockHash)
-
 	var ctx = context.Background()
 	var blockTransactionCount string
 
-	err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByHash", blockHash)
+	err := rpcClient.CallContext(ctx, &blockTransactionCount, "eth_getBlockTransactionCountByHash", hash)
 	if err != nil {
 		log.Print("Error fetching block transaction count:", err)
 	}
