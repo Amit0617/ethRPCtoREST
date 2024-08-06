@@ -495,13 +495,10 @@ func getUncleByDecimalNumberAndIndex(c *fiber.Ctx, number string, index string) 
 }
 
 func getUncleByBlockHashAndIndex(c *fiber.Ctx, hash string, index string) error {
-	blockHash := common.HexToHash(hash)
-	log.Println(blockHash)
-
 	var ctx = context.Background()
 	var uncle *types.Header
 
-	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockHashAndIndex", blockHash, index)
+	err := rpcClient.CallContext(ctx, &uncle, "eth_getUncleByBlockHashAndIndex", hash, index)
 	if err != nil {
 		log.Print("Error fetching uncle:", err)
 	}
