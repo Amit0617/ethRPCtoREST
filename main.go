@@ -206,8 +206,6 @@ func getBlockByIdentifier(c *fiber.Ctx) error {
 
 // getBlockByHash retrieves block information by hash and returns it as JSON.
 func getBlockByHash(c *fiber.Ctx, hash string, includeTx bool) error {
-	blockHash := common.HexToHash(hash)
-	log.Println(blockHash, includeTx)
 	var ctx = context.Background()
 	var blockInfo *types.Header
 	err := rpcClient.CallContext(ctx, &blockInfo, "eth_getBlockByHash", hash, includeTx)
