@@ -526,13 +526,10 @@ func getUncleCountByBlockIdentifier(c *fiber.Ctx) error {
 }
 
 func getUncleCountByBlockHash(c *fiber.Ctx, hash string) error {
-	blockHash := common.HexToHash(hash)
-	log.Println(blockHash)
-
 	var ctx = context.Background()
 	var uncleCount string
 
-	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockHash", blockHash)
+	err := rpcClient.CallContext(ctx, &uncleCount, "eth_getUncleCountByBlockHash", hash)
 	if err != nil {
 		log.Print("Error fetching uncle count:", err)
 	}
