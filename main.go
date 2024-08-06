@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/gofiber/contrib/swagger"
@@ -26,7 +25,6 @@ import (
 )
 
 var RPC_URL string
-var client *ethclient.Client
 var rpcClient *rpc.Client
 
 // A Block hash is 32 bytes long and hence 64 characters long plus 0x prefix
@@ -111,11 +109,6 @@ func main() {
 	log.Println(RPC_URL)
 
 	var err error
-
-	client, err = ethclient.Dial(RPC_URL)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	rpcClient, err = rpc.Dial(RPC_URL)
 	if err != nil {
@@ -383,7 +376,6 @@ func getTransactionByBlockNumberAndIndex(c *fiber.Ctx, numberOrDefaultParameters
 func getTransactionByBlockHashAndIndex(c *fiber.Ctx, hash string, index uint) error {
 	blockHash := common.HexToHash(hash)
 	log.Println(blockHash)
-	// block, err := client.TransactionInBlock(context.Background(), blockHash, index)
 	var ctx = context.Background()
 	var json *rpcTransaction
 	err := rpcClient.CallContext(ctx, &json, "eth_getTransactionByBlockHashAndIndex", blockHash, index)
@@ -406,7 +398,7 @@ func getTransactionReceiptByHash(c *fiber.Ctx) error {
 		if err != nil {
 			log.Print("Error fetching transaction info:", err)
 		}
-		return c.JSON(transactionReceipt)
+		return c.JSON(StringifyReceipt(transactionReceipt))
 	} else {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid transaction hash",
@@ -2058,9 +2050,9 @@ func StringifyReceipt(receipt txReceipt) map[string]interface{} {
 
 	// return a map of all items in struct
 	stringified := map[string]interface{}{
-		"blockHash":         receipt.BlockHash.String(),
+		"blockHash":         receipt.BlockHash,
 		"blockNumber":       blockNumberDecimal,
-		"contractAddress":   receipt.ContractAddress.String(),
+		"contractAddress":   receipt.ContractAddress,
 		"cumulativeGasUsed": cumulativeGasDecimal,
 		"effectiveGasPrice": effectiveGasDecimal,
 		"gasUsed":           gasUsedDecimal,
