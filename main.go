@@ -389,11 +389,9 @@ func getTransactionReceiptByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	// Check if hash is a valid transaction hash
 	if hashRegex.MatchString(hash) {
-		transactionHash := common.HexToHash(hash)
-		log.Println(transactionHash)
 		var ctx = context.Background()
 		var transactionReceipt txReceipt
-		err := rpcClient.CallContext(ctx, &transactionReceipt, "eth_getTransactionReceipt", transactionHash)
+		err := rpcClient.CallContext(ctx, &transactionReceipt, "eth_getTransactionReceipt", hash)
 		if err != nil {
 			log.Print("Error fetching transaction info:", err)
 		}
