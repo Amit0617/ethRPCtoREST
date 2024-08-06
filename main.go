@@ -105,6 +105,9 @@ func main() {
 	}
 	app.Use(swagger.New(cfg))
 
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: ./ethRPCtoREST <rpc_url>")
+	}
 	RPC_URL = os.Args[1]
 	log.Println(RPC_URL)
 

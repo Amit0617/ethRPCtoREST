@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.5"
+
+      - name: Build binary
+        run: |
+          go build -o ./ethRPCtoREST ./main.go
+
+      - name: Create tarball
+        run: |
+          tar -czvf ethRPCtoREST.tar.gz ethRPCtoREST
+
+      - name: Generate SHA256
+        run: |
+          sha256sum ethRPCtoREST.tar.gz > ethRPCtoREST.tar.gz.sha256
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          release_name="Release ${GITHUB_REF#refs/tags/}"
+          echo "Creating release: $release_name"
+          response=$(curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/releases \
+            -d '{
+              "tag_name": "${{ github.ref }}",
+              "name": "'"$release_name"'",
+              "generate_release_notes":true
+            }')
+          echo "Response: $response"
+          release_id=$(echo $response | jq -r .id)
+          echo "RELEASE_ID=$release_id" >> $GITHUB_ENV
+          echo "Release ID: $release_id"
+
+      - name: Upload Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          echo "Uploading asset to release $RELEASE_ID"
+          curl -L -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/gzip" \
+            --data-binary @ethRPCtoREST.tar.gz \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=ethRPCtoREST.tar.gz"
+
+      - name: Upload SHA256
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+        run: |
+          echo "Uploading SHA256 to release $RELEASE_ID"
+          curl -L -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: text/plain" \
+            --data-binary @ethRPCtoREST.tar.gz.sha256 \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=ethRPCtoREST.tar.gz.sha256"
