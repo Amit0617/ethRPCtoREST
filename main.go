@@ -27,7 +27,7 @@ import (
 var RPC_URL string
 var rpcClient *rpc.Client
 
-// A Block hash is 32 bytes long and hence 64 characters long plus 0x prefix
+// A Block hash is 32 bytes long and hence 64 characters long with 0x prefix
 var hashRegex = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 
 // A block number also allows default block identifiers such as "earliest", "latest" and "pending"

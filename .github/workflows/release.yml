@@ -34,7 +34,7 @@ jobs:
 
       - name: Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           release_name="Release ${GITHUB_REF#refs/tags/}"
           echo "Creating release: $release_name"
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload Release Asset
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           echo "Uploading asset to release $RELEASE_ID"
           curl -L -X POST \
@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload SHA256
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           echo "Uploading SHA256 to release $RELEASE_ID"
           curl -L -X POST \
