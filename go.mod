@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/ethereum/go-ethereum v1.16.8
 	github.com/gofiber/contrib/swagger v1.1.1
-	github.com/gofiber/fiber/v2 v2.52.9
+	github.com/gofiber/fiber/v2 v2.52.11
 )
 
 require (
